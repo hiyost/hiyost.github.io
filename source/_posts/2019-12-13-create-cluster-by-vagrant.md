@@ -32,7 +32,7 @@ date: 2019-12-13 10:15:51
 
 http://cloud.centos.org/centos/7/vagrant/x86_64/images/
 
-
+<!-- more -->
 
 #### vagrant常用命令
 

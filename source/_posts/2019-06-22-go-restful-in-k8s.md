@@ -20,7 +20,7 @@ tags: code, package, rest
 
 因此在分析go-restful这个库的功能和使用方法之前，我们先来了解一下这个库的几个关键数据结构。
 
-
+<!-- more -->
 
 ### 1.1 `Container`
 

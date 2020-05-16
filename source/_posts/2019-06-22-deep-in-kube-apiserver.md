@@ -31,7 +31,7 @@ type Master struct {
 
 ### 1.2 `GenericAPIServer`
 
-
+<!-- more -->
 
 ```go
 // GenericAPIServer contains state for a Kubernetes cluster api server.

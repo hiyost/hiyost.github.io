@@ -6,7 +6,7 @@ tags: list-watch, k8s, client-go
 
 
 
-[TOC]
+
 
 
 
@@ -16,7 +16,7 @@ tags: list-watch, k8s, client-go
 
 言归正传，本文的目的是将list-watch的机制搞清楚，各位看官且往下看。
 
-
+<!-- more -->
 
 > 说明：本文使用的k8s代码为[1.13版本](<https://github.com/kubernetes/kubernetes/tree/release-1.13>)，其他版本代码可能会有少许差异。
 >

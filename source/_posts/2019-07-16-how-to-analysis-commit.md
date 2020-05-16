@@ -10,7 +10,7 @@ tags: commit analysis
 
 
 
-
+<!-- more -->
 
 ## 1 一条命令导出当前分支所有commit
 
