@@ -4,8 +4,6 @@ date: 2020-01-04 17:19:59
 tags: github
 ---
 
-
-
 解决windows下github访问速度慢的问题，方法参考了[路人Q的博客](<https://www.cnblogs.com/lurenq/archive/2019/12/10/12014415.html>)。该方法也同样适用于所有其他的网站。
 
 <!-- more -->

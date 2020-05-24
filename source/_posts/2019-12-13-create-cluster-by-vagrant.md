@@ -5,28 +5,18 @@ date: 2019-12-13 10:15:51
 ---
 
 
-
-
 更加详细的操作方法请参考宋净超的[github项目](<https://github.com/rootsongjc/kubernetes-vagrant-centos-cluster>)。
 
 
 ### 1、准备工作
 
-
-
 #### 安装vagrant和virtualbox
-
-
 
 `vagrant`官方下载地址（我使用的版本是2.2.6）： https://www.vagrantup.com/downloads.html
 
 `virtualbox`官方下载地址（我使用的版本是2.2.65.2.14 r123301）： https://www.virtualbox.org/wiki/Download_Old_Builds_5_2
 
-
-
 #### 获取虚机镜像
-
-
 
 `centos`的`vagrant`镜像地址
 
@@ -126,7 +116,7 @@ end
 
 搭建步骤：
 
-1、安全PC上安装`virtualbox`和`Vagrant`
+1、PC上安装`virtualbox`和`Vagrant`
 
 2、下载并导入`centos/7`的`Vagrant`[镜像](http://cloud.centos.org/centos/7/vagrant/x86_64/images/)并导入
 

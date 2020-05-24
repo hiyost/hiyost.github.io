@@ -4,25 +4,17 @@ date: 2020-01-11 10:42:14
 tags: node_exporter
 ---
 
-
-
 ### 1、项目概况
 
 项目地址：https://github.com/prometheus/node_exporter
 
-
-
 `node_exporter`本质是`prometheus`项目衍生出来的[众多exporter](https://prometheus.io/docs/instrumenting/exporters/#exporters-and-integrations)中的一个，主要用于收集*NIX内核的节点上硬件和操作系统的各种数据，并暴露`/metrics`接口以供其他组件（如prometheus）采集。该组件收集的监控指标可以直接参考github代码库的`README.md`，在此就不多做赘述。
-
-
 
 <!-- more -->
 
 ### 2、部署方法
 
 #### 2.1、二进制部署
-
-
 
 ```shell
 wget https://github.com/prometheus/node_exporter/releases/download/v0.14.0/node_exporter-0.14.0.linux-amd64.tar.gz
@@ -31,11 +23,7 @@ cd node_exporter-0.14.0.linux-amd64
 ./node_exporter
 ```
 
-
-
 #### 2.2、通过容器部署
-
-
 
 ```shell
 docker run -d -p 9100:9100 \
@@ -48,8 +36,6 @@ docker run -d -p 9100:9100 \
     -collector.sysfs /host/sys \
     -collector.filesystem.ignored-mount-points "^/(sys|proc|dev|host|etc)($|/)"
 ```
-
-
 
 #### 2.3、通过k8s部署
 
@@ -103,11 +89,7 @@ spec:
 kubectl create -f node-exporter.yaml
 ```
 
-
-
 ### 3、启动参数说明
-
-
 
 ```shell
 /bin/node_exporter -h
@@ -120,8 +102,6 @@ kubectl create -f node-exporter.yaml
       --version                 # 版本号
       --collector.{metric-name} # 各个metric对应的参数
 ```
-
-
 
 ### 4、代码分析
 
