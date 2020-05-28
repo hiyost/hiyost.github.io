@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"yost.top","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="搜索相关301. 删除无效的括号题目删除最小数量的无效括号，使得输入的字符串有效，返回所有可能的结果。 说明: 输入可能包含了除 ( 和 ) 以外的字符。 示例 1: 12输入: &quot;()())()&quot;输出: [&quot;()()()&quot;, &quot;(())()&quot;]   示例 2: 12输入: &quot;(a)())()&quot;输出: [&quot;(a)()()&quot;, &quot;(a())()&quot;]   示例 3: 12输入: &quot;)(&quot;输出: [&quot;&quot;">
+<meta property="og:type" content="article">
+<meta property="og:title" content="leetcode题解持续更新">
+<meta property="og:url" content="http://yost.top/2019/09/26/leetcode-review/index.html">
+<meta property="og:site_name" content="yost">
+<meta property="og:description" content="搜索相关301. 删除无效的括号题目删除最小数量的无效括号，使得输入的字符串有效，返回所有可能的结果。 说明: 输入可能包含了除 ( 和 ) 以外的字符。 示例 1: 12输入: &quot;()())()&quot;输出: [&quot;()()()&quot;, &quot;(())()&quot;]   示例 2: 12输入: &quot;(a)())()&quot;输出: [&quot;(a)()()&quot;, &quot;(a())()&quot;]   示例 3: 12输入: &quot;)(&quot;输出: [&quot;&quot;">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-09-26T01:40:54.000Z">
+<meta property="article:modified_time" content="2020-05-20T12:15:24.073Z">
+<meta property="article:author" content="yost">
+<meta property="article:tag" content="leetcode">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://yost.top/2019/09/26/leetcode-review/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>leetcode题解持续更新 | yost</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">yost</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yost.top/2019/09/26/leetcode-review/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="yost">
+      <meta itemprop="description" content="种一棵树最好的时间是十年前，其次是现在~">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="yost">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          leetcode题解持续更新
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-09-26 09:40:54" itemprop="dateCreated datePublished" datetime="2019-09-26T09:40:54+08:00">2019-09-26</time>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>23k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>21 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="搜索相关"><a href="#搜索相关" class="headerlink" title="搜索相关"></a>搜索相关</h2><h3 id="301-删除无效的括号"><a href="#301-删除无效的括号" class="headerlink" title="301. 删除无效的括号"></a><a href="https://leetcode-cn.com/problems/remove-invalid-parentheses/" target="_blank" rel="noopener">301. 删除无效的括号</a></h3><h4 id="题目"><a href="#题目" class="headerlink" title="题目"></a>题目</h4><p>删除最小数量的无效括号，使得输入的字符串有效，返回所有可能的结果。</p>
+<p>说明: 输入可能包含了除 ( 和 ) 以外的字符。</p>
+<p>示例 1:</p>
+<figure class="highlight prolog"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">输入: <span class="string">"()())()"</span></span><br><span class="line">输出: [<span class="string">"()()()"</span>, <span class="string">"(())()"</span>]</span><br></pre></td></tr></table></figure>
+
+
+<p>示例 2:</p>
+<figure class="highlight smalltalk"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">输入: <span class="comment">"(a)())()"</span></span><br><span class="line">输出: [<span class="comment">"(a)()()"</span>, <span class="comment">"(a())()"</span>]</span><br></pre></td></tr></table></figure>
+
+
+<p>示例 3:</p>
+<figure class="highlight prolog"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">输入: <span class="string">")("</span></span><br><span class="line">输出: [<span class="string">""</span>]</span><br></pre></td></tr></table></figure>
+
+<a id="more"></a>
+
+<h4 id="题解"><a href="#题解" class="headerlink" title="题解"></a>题解</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 注意这道题目中可能存在的场景：</span></span><br><span class="line"><span class="comment">// "()())()"、"(a)())()"、")x("、"((("、")(f"、""</span></span><br><span class="line"><span class="comment">// 算法使用深度优先</span></span><br><span class="line"><span class="keyword">var</span> ret []<span class="keyword">string</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">removeInvalidParentheses</span><span class="params">(s <span class="keyword">string</span>)</span> []<span class="title">string</span></span> &#123;</span><br><span class="line">    <span class="comment">// 先统计需要删除的左括号和右括号的数量</span></span><br><span class="line">    left, right := <span class="number">0</span>, <span class="number">0</span></span><br><span class="line">    <span class="keyword">for</span> i:=<span class="number">0</span>; i&lt; <span class="built_in">len</span>(s); i++ &#123;</span><br><span class="line">        <span class="keyword">if</span> s[i] == <span class="string">'('</span> &#123;</span><br><span class="line">            left ++</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> s[i] == <span class="string">')'</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> left == <span class="number">0</span> &#123;</span><br><span class="line">                right ++</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                left --</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 使用深度优先算法计算所有可能的值</span></span><br><span class="line">    ret = []<span class="keyword">string</span>&#123;&#125;</span><br><span class="line">    dfs(s, <span class="number">0</span>, left, right)</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(ret) == <span class="number">0</span> &#123;</span><br><span class="line">        ret = []<span class="keyword">string</span>&#123;<span class="string">""</span>&#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> ret</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">dfs</span><span class="params">(s <span class="keyword">string</span>, start, left, right <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> left == <span class="number">0</span> &amp;&amp; right == <span class="number">0</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> isValid(s) &#123;</span><br><span class="line">            ret = <span class="built_in">append</span>(ret, s)</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span> i := start; i &lt; <span class="built_in">len</span>(s) ; i++ &#123;</span><br><span class="line">        <span class="comment">// 防止重复，如果这次处理的字符跟上次一样则跳过（得到的结果是一样的）</span></span><br><span class="line">        <span class="keyword">if</span> i &gt; start  &amp;&amp; s[i] == s[i<span class="number">-1</span>] &#123;</span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> s[i] == <span class="string">'('</span> &amp;&amp; left &gt; <span class="number">0</span> &#123;</span><br><span class="line">            dfs(s[:i]+s[i+<span class="number">1</span>:], i, left<span class="number">-1</span>, right)</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> s[i] == <span class="string">')'</span> &amp;&amp; right &gt; <span class="number">0</span> &#123;</span><br><span class="line">            dfs(s[:i]+s[i+<span class="number">1</span>:], i, left, right<span class="number">-1</span>)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 判断是否为满足要求的字符串</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">isValid</span><span class="params">(s <span class="keyword">string</span>)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">    left := <span class="number">0</span></span><br><span class="line">    <span class="keyword">for</span> i:=<span class="number">0</span>; i&lt; <span class="built_in">len</span>(s); i++ &#123;</span><br><span class="line">        <span class="keyword">if</span> s[i] == <span class="string">'('</span> &#123;</span><br><span class="line">            left ++</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> s[i] == <span class="string">')'</span> &#123;</span><br><span class="line">            left --</span><br><span class="line">            <span class="keyword">if</span> left &lt; <span class="number">0</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> left == <span class="number">0</span> &amp;&amp; <span class="built_in">len</span>(s) != <span class="number">0</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="239-滑动窗口最大值"><a href="#239-滑动窗口最大值" class="headerlink" title="239. 滑动窗口最大值"></a><a href="https://leetcode-cn.com/problems/sliding-window-maximum/" target="_blank" rel="noopener">239. 滑动窗口最大值</a></h3><h4 id="题目-1"><a href="#题目-1" class="headerlink" title="题目"></a>题目</h4><p>给定一个数组 nums，有一个大小为 k 的滑动窗口从数组的最左侧移动到数组的最右侧。你只可以看到在滑动窗口内的 k 个数字。滑动窗口每次只向右移动一位。</p>
+<p>返回滑动窗口中的最大值。</p>
+<p>示例:</p>
+<figure class="highlight angelscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">输入: nums = [<span class="number">1</span>,<span class="number">3</span>,<span class="number">-1</span>,<span class="number">-3</span>,<span class="number">5</span>,<span class="number">3</span>,<span class="number">6</span>,<span class="number">7</span>], 和 k = <span class="number">3</span></span><br><span class="line">输出: [<span class="number">3</span>,<span class="number">3</span>,<span class="number">5</span>,<span class="number">5</span>,<span class="number">6</span>,<span class="number">7</span>] </span><br><span class="line">解释: </span><br><span class="line"></span><br><span class="line">  滑动窗口的位置                最大值</span><br><span class="line"></span><br><span class="line">------</span><br><span class="line"></span><br><span class="line">[<span class="number">1</span>  <span class="number">3</span>  <span class="number">-1</span>] <span class="number">-3</span>  <span class="number">5</span>  <span class="number">3</span>  <span class="number">6</span>  <span class="number">7</span>       <span class="number">3</span></span><br><span class="line"> <span class="number">1</span> [<span class="number">3</span>  <span class="number">-1</span>  <span class="number">-3</span>] <span class="number">5</span>  <span class="number">3</span>  <span class="number">6</span>  <span class="number">7</span>       <span class="number">3</span></span><br><span class="line"> <span class="number">1</span>  <span class="number">3</span> [<span class="number">-1</span>  <span class="number">-3</span>  <span class="number">5</span>] <span class="number">3</span>  <span class="number">6</span>  <span class="number">7</span>       <span class="number">5</span></span><br><span class="line"> <span class="number">1</span>  <span class="number">3</span>  <span class="number">-1</span> [<span class="number">-3</span>  <span class="number">5</span>  <span class="number">3</span>] <span class="number">6</span>  <span class="number">7</span>       <span class="number">5</span></span><br><span class="line"> <span class="number">1</span>  <span class="number">3</span>  <span class="number">-1</span>  <span class="number">-3</span> [<span class="number">5</span>  <span class="number">3</span>  <span class="number">6</span>] <span class="number">7</span>       <span class="number">6</span></span><br><span class="line"> <span class="number">1</span>  <span class="number">3</span>  <span class="number">-1</span>  <span class="number">-3</span>  <span class="number">5</span> [<span class="number">3</span>  <span class="number">6</span>  <span class="number">7</span>]      <span class="number">7</span></span><br></pre></td></tr></table></figure>
+
+
+<p>提示：</p>
+<p>你可以假设 k 总是有效的，在输入数组不为空的情况下，1 ≤ k ≤ 输入数组的大小。</p>
+<p>进阶：</p>
+<p>你能在线性时间复杂度内解决此题吗？</p>
+<h4 id="题解-1"><a href="#题解-1" class="headerlink" title="题解"></a>题解</h4><p>暴力求解</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">maxSlidingWindow</span><span class="params">(nums []<span class="keyword">int</span>, k <span class="keyword">int</span>)</span> []<span class="title">int</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(nums) == <span class="number">0</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> []<span class="keyword">int</span>&#123;&#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ret := <span class="built_in">make</span>([]<span class="keyword">int</span>, <span class="built_in">len</span>(nums) - k +<span class="number">1</span>)</span><br><span class="line">    <span class="keyword">for</span> i := k<span class="number">-1</span>; i &lt; <span class="built_in">len</span>(nums); i++ &#123;</span><br><span class="line">        maxN := nums[i-k+<span class="number">1</span>]</span><br><span class="line">        <span class="keyword">for</span> j := i-k+<span class="number">2</span>; j &lt;= i; j++ &#123;</span><br><span class="line">            <span class="keyword">if</span> nums[j] &gt; maxN &#123;</span><br><span class="line">                maxN = nums[j]</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        ret[i-k+<span class="number">1</span>] = maxN</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> ret</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>线性时间的话需要有一个变量保存上一次最大值和第二大值的索引，如果过了最大值则将新加进来的元素跟第二大的值进行比较，并且需要重新刷新最大值和第二大值</p>
+<h3 id="128-最长连续序列"><a href="#128-最长连续序列" class="headerlink" title="128. 最长连续序列"></a><a href="https://leetcode-cn.com/problems/longest-consecutive-sequence/" target="_blank" rel="noopener">128. 最长连续序列</a></h3><h4 id="题目-2"><a href="#题目-2" class="headerlink" title="题目"></a>题目</h4><p>给定一个未排序的整数数组，找出最长连续序列的长度。</p>
+<p>要求算法的时间复杂度为 O(n)。</p>
+<p>示例:</p>
+<figure class="highlight angelscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">输入: [<span class="number">100</span>, <span class="number">4</span>, <span class="number">200</span>, <span class="number">1</span>, <span class="number">3</span>, <span class="number">2</span>]</span><br><span class="line">输出: <span class="number">4</span></span><br><span class="line">解释: 最长连续序列是 [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>]。它的长度为 <span class="number">4</span>。</span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="题解-2"><a href="#题解-2" class="headerlink" title="题解"></a>题解</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 用map做hashset，每次都将改元素所有相邻的元素都找出来</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">longestConsecutive</span><span class="params">(nums []<span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">    set := <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">int</span>]<span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">    <span class="keyword">for</span> _,v := <span class="keyword">range</span> nums &#123;</span><br><span class="line">        set[v]=<span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line">    &#125;</span><br><span class="line">    max := <span class="number">0</span></span><br><span class="line">    <span class="keyword">for</span> _,v := <span class="keyword">range</span> nums &#123;</span><br><span class="line">        <span class="keyword">if</span> _, ok := set[v]; ok &#123;</span><br><span class="line">            <span class="comment">// 包含本元素的连续序列长度，已经遍历过的元素从hashset中删除</span></span><br><span class="line">            l := <span class="number">1</span></span><br><span class="line">            <span class="comment">// 向后搜索</span></span><br><span class="line">            <span class="keyword">for</span> cur := v+<span class="number">1</span>; ; cur++ &#123;</span><br><span class="line">                <span class="keyword">if</span> _, ok := set[cur]; !ok &#123;</span><br><span class="line">                    <span class="keyword">break</span></span><br><span class="line">                &#125;</span><br><span class="line">                l++</span><br><span class="line">                <span class="built_in">delete</span>(set, cur)</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">// 向前搜索</span></span><br><span class="line">            <span class="keyword">for</span> cur := v<span class="number">-1</span>; ; cur-- &#123;</span><br><span class="line">                <span class="keyword">if</span> _, ok := set[cur]; !ok &#123;</span><br><span class="line">                    <span class="keyword">break</span></span><br><span class="line">                &#125;</span><br><span class="line">                l++</span><br><span class="line">                <span class="built_in">delete</span>(set, cur)</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="built_in">delete</span>(set, v)</span><br><span class="line">            <span class="keyword">if</span> l &gt; max &#123;</span><br><span class="line">                max = l</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> max</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="1147-段式回文"><a href="#1147-段式回文" class="headerlink" title="1147. 段式回文"></a><a href="https://leetcode-cn.com/problems/longest-chunked-palindrome-decomposition/" target="_blank" rel="noopener">1147. 段式回文</a></h3><h4 id="题目-3"><a href="#题目-3" class="headerlink" title="题目"></a>题目</h4><p>段式回文 其实与 一般回文 类似，只不过是最小的单位是 一段字符 而不是 单个字母。</p>
+<p>举个例子，对于一般回文 “abcba” 是回文，而 “volvo” 不是，但如果我们把 “volvo” 分为 “vo”、”l”、”vo” 三段，则可以认为 “(vo)(l)(vo)” 是段式回文（分为 3 段）。</p>
+<p>给你一个字符串 text，在确保它满足段式回文的前提下，请你返回 段 的 最大数量 k。</p>
+<p>如果段的最大数量为 k，那么存在满足以下条件的 <code>a_1, a_2, ..., a_k</code>：</p>
+<ul>
+<li><p>每个 a_i 都是一个非空字符串；</p>
+</li>
+<li><p>将这些字符串首位相连的结果 <code>a_1 + a_2 + ... + a_k</code> 和原始字符串 text 相同；</p>
+</li>
+<li><p>对于所有<code>1 &lt;= i &lt;= k</code>，都有 <code>a_i = a_{k+1 - i}</code>。</p>
+</li>
+</ul>
+<p>示例 1：</p>
+<figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">输入：<span class="built_in">text</span> = <span class="string">"ghiabcdefhelloadamhelloabcdefghi"</span></span><br><span class="line">输出：<span class="number">7</span></span><br><span class="line">解释：我们可以把字符串拆分成 <span class="string">"(ghi)(abcdef)(hello)(adam)(hello)(abcdef)(ghi)"</span>。</span><br></pre></td></tr></table></figure>
+
+
+<p>示例 2：</p>
+<figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">输入：<span class="built_in">text</span> = <span class="string">"merchant"</span></span><br><span class="line">输出：<span class="number">1</span></span><br><span class="line">解释：我们可以把字符串拆分成 <span class="string">"(merchant)"</span>。</span><br></pre></td></tr></table></figure>
+
+
+<p>示例 3：</p>
+<figure class="highlight smalltalk"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">输入：text = <span class="comment">"antaprezatepzapreanta"</span></span><br><span class="line">输出：<span class="number">11</span></span><br><span class="line">解释：我们可以把字符串拆分成 <span class="comment">"(a)(nt)(a)(pre)(za)(tpe)(za)(pre)(a)(nt)(a)"</span>。</span><br></pre></td></tr></table></figure>
+
+
+<p>示例 4：</p>
+<figure class="highlight smalltalk"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">输入：text = <span class="comment">"aaa"</span></span><br><span class="line">输出：<span class="number">3</span></span><br><span class="line">解释：我们可以把字符串拆分成 <span class="comment">"(a)(a)(a)"</span>。</span><br></pre></td></tr></table></figure>
+
+
+<p>提示：</p>
+<ul>
+<li><p>text 仅由小写英文字符组成。</p>
+</li>
+<li><p>1 &lt;= text.length &lt;= 1000</p>
+</li>
+</ul>
+<h4 id="题解-3"><a href="#题解-3" class="headerlink" title="题解"></a>题解</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 递归求解，每次从后往前遍历，如果能找到一个回文段则+2并去掉这两个回文段继续遍历</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">longestDecomposition</span><span class="params">(text <span class="keyword">string</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(text) == <span class="number">0</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">    &#125;</span><br><span class="line">	<span class="keyword">for</span> last := <span class="built_in">len</span>(text)<span class="number">-1</span>; <span class="built_in">len</span>(text) &gt; <span class="number">1</span> &amp;&amp; last &gt;= <span class="built_in">len</span>(text)/<span class="number">2</span>; last -- &#123;</span><br><span class="line">		<span class="keyword">if</span> text[:<span class="built_in">len</span>(text)-last] == text[last:] &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="number">2</span> + longestDecomposition(text[<span class="built_in">len</span>(text)-last:last])</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">    <span class="comment">// 找不到回文段则将整体作为回文段</span></span><br><span class="line">	<span class="keyword">return</span> <span class="number">1</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="76-最小覆盖子串"><a href="#76-最小覆盖子串" class="headerlink" title="76. 最小覆盖子串"></a><a href="https://leetcode-cn.com/problems/minimum-window-substring/" target="_blank" rel="noopener">76. 最小覆盖子串</a></h3><h4 id="题目-4"><a href="#题目-4" class="headerlink" title="题目"></a>题目</h4><p>给你一个字符串 S、一个字符串 T，请在字符串 S 里面找出：包含 T 所有字母的最小子串。</p>
+<p>示例：</p>
+<figure class="highlight nix"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">输入: <span class="attr">S</span> = <span class="string">"ADOBECODEBANC"</span>, <span class="attr">T</span> = <span class="string">"ABC"</span></span><br><span class="line">输出: <span class="string">"BANC"</span></span><br></pre></td></tr></table></figure>
+
+
+<p>说明：</p>
+<ul>
+<li>如果 S 中不存这样的子串，则返回空字符串 “”。</li>
+<li>如果 S 中存在这样的子串，我们保证它是唯一的答案。</li>
+</ul>
+<h4 id="题解-4"><a href="#题解-4" class="headerlink" title="题解"></a>题解</h4><p>使用两个指针来进行搜索，从前往后慢慢搜索满足要求的子串，后面的指针用来找到满足要求的子串，前面的指针用来移动到长度最小。注意这里没有用字符比较的方式进行匹配，而是通过一个计数器来判断，具体请看代码。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">minWindow</span><span class="params">(s <span class="keyword">string</span>, t <span class="keyword">string</span>)</span> <span class="title">string</span></span> &#123;</span><br><span class="line">    tMap, sMap := <span class="built_in">make</span>([]<span class="keyword">int</span>, <span class="number">58</span>), <span class="built_in">make</span>([]<span class="keyword">int</span>, <span class="number">58</span>)</span><br><span class="line">    <span class="keyword">for</span> _, i := <span class="keyword">range</span> t &#123;</span><br><span class="line">        tMap[i-<span class="string">'A'</span>]++</span><br><span class="line">    &#125;</span><br><span class="line">    head, tail, minL, minR := <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="built_in">len</span>(s)+<span class="number">1</span></span><br><span class="line">    <span class="keyword">for</span> fulfill := <span class="number">0</span>; tail &lt; <span class="built_in">len</span>(s); tail++ &#123;</span><br><span class="line">        <span class="comment">// t中不存在这个字符则不用管</span></span><br><span class="line">        <span class="keyword">if</span> tMap[s[tail]-<span class="string">'A'</span>] == <span class="number">0</span> &#123;</span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line">        &#125;</span><br><span class="line">        sMap[s[tail]-<span class="string">'A'</span>]++</span><br><span class="line">        <span class="keyword">if</span> sMap[s[tail]-<span class="string">'A'</span>] &lt;= tMap[s[tail]-<span class="string">'A'</span>] &#123;</span><br><span class="line">            <span class="comment">// 字符只有小于或等于t这个字符串中该字符的个数时才产生作用</span></span><br><span class="line">            fulfill++</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> fulfill == <span class="built_in">len</span>(t) &#123;</span><br><span class="line">            <span class="comment">// 满足当前要求，则向右移动head，直到遇到第一个使子串不满足要求为止</span></span><br><span class="line">            <span class="comment">// 即s[head:tail+1]满足要求，s[head+1:tail+1]不满足，为当前的最短子串</span></span><br><span class="line">            <span class="keyword">for</span> ;tMap[s[head]-<span class="string">'A'</span>] == <span class="number">0</span> || sMap[s[head]-<span class="string">'A'</span>] &gt; tMap[s[head]-<span class="string">'A'</span>]; head++ &#123;</span><br><span class="line">                <span class="keyword">if</span> tMap[s[head]-<span class="string">'A'</span>] &gt;= <span class="number">0</span> &#123;</span><br><span class="line">                    sMap[s[head]-<span class="string">'A'</span>]--</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> tail-head &lt; minR-minL &#123;</span><br><span class="line">                 minR, minL = tail,head</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">// head右移一位，这样s[head:tail+1]又不满足要求了</span></span><br><span class="line">            sMap[s[head]-<span class="string">'A'</span>]--</span><br><span class="line">            head++</span><br><span class="line">            fulfill--</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> minR== <span class="built_in">len</span>(s)+<span class="number">1</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="string">""</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> s[minL:minR+<span class="number">1</span>]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="124-二叉树中的最大路径和"><a href="#124-二叉树中的最大路径和" class="headerlink" title="124. 二叉树中的最大路径和"></a><a href="https://leetcode-cn.com/problems/binary-tree-maximum-path-sum/" target="_blank" rel="noopener">124. 二叉树中的最大路径和</a></h3><h4 id="题目-5"><a href="#题目-5" class="headerlink" title="题目"></a>题目</h4><p>给定一个非空二叉树，返回其最大路径和。</p>
+<p>本题中，路径被定义为一条从树中任意节点出发，达到任意节点的序列。该路径至少包含一个节点，且不一定经过根节点。</p>
+<p>示例 1:</p>
+<figure class="highlight angelscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">输入: [<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>]</span><br><span class="line"></span><br><span class="line">   <span class="number">1</span></span><br><span class="line">  / \</span><br><span class="line"> <span class="number">2</span>   <span class="number">3</span></span><br><span class="line"></span><br><span class="line">输出: <span class="number">6</span></span><br></pre></td></tr></table></figure>
+
+
+<p>示例 2:</p>
+<figure class="highlight angelscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">输入: [<span class="number">-10</span>,<span class="number">9</span>,<span class="number">20</span>,<span class="literal">null</span>,<span class="literal">null</span>,<span class="number">15</span>,<span class="number">7</span>]</span><br><span class="line"></span><br><span class="line">   <span class="number">-10</span></span><br><span class="line">   / \</span><br><span class="line">  <span class="number">9</span>  <span class="number">20</span></span><br><span class="line">    /  \</span><br><span class="line">   <span class="number">15</span>   <span class="number">7</span></span><br><span class="line"></span><br><span class="line">输出: <span class="number">42</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="题解-5"><a href="#题解-5" class="headerlink" title="题解"></a>题解</h4><p>主要思路是递归。最开始一直没有想明白的是每次递归的函数里面应该返回什么？是这个问题要求解的最大路径和吗？其实不是。可以思考一下，对于每一个root而言，其最大路径和需要考虑的是root节点、左节点的一条边路径和右节点的一条边路径，因此这个<strong>递归函数要返回的是这个root节点的最大路径的一条边</strong>，这样才能递归下去。但是这样问题也来了：怎么计算和递归最大路径和呢？这里<strong>使用指针将我们要求解的值传到递归的函数里面去</strong>，一旦有更大的路径和就更新这个值。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Definition for a binary tree node.</span></span><br><span class="line"><span class="comment"> * type TreeNode struct &#123;</span></span><br><span class="line"><span class="comment"> *     Val int</span></span><br><span class="line"><span class="comment"> *     Left *TreeNode</span></span><br><span class="line"><span class="comment"> *     Right *TreeNode</span></span><br><span class="line"><span class="comment"> * &#125;</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">maxPathSum</span><span class="params">(root *TreeNode)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">    max := <span class="number">-1</span>&lt;&lt;<span class="number">31</span></span><br><span class="line">    subPathMax(root, &amp;max)</span><br><span class="line">    <span class="keyword">return</span> max</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// subPathMax函数计算的是当前这个root中取left+root、right+root、root中的最大值</span></span><br><span class="line"><span class="comment">// 对于题目中的问题，需要算的是left+root+right的最大值，所以通过指针传进去病更新max</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">subPathMax</span><span class="params">(root *TreeNode, max *<span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> root == <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">    &#125;</span><br><span class="line">    left := Max(subPathMax(root.Left, max), <span class="number">0</span>)</span><br><span class="line">    right := Max(subPathMax(root.Right, max), <span class="number">0</span>)</span><br><span class="line">    *max = Max(*max, root.Val+left+right)</span><br><span class="line">    <span class="keyword">return</span> root.Val+Max(left, right)</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// </span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Max</span><span class="params">(i, j <span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> i &gt; j &#123;</span><br><span class="line">        <span class="keyword">return</span> i</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> j</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="980-不同路径-III"><a href="#980-不同路径-III" class="headerlink" title="980. 不同路径 III"></a><a href="https://leetcode-cn.com/problems/unique-paths-iii/" target="_blank" rel="noopener">980. 不同路径 III</a></h3><h4 id="题目-6"><a href="#题目-6" class="headerlink" title="题目"></a>题目</h4><p>在二维网格 grid 上，有 4 种类型的方格：</p>
+<ul>
+<li>1 表示起始方格。且只有一个起始方格。</li>
+<li>2 表示结束方格，且只有一个结束方格。</li>
+<li>0 表示我们可以走过的空方格。</li>
+<li>-1 表示我们无法跨越的障碍。</li>
+</ul>
+<p>返回在四个方向（上、下、左、右）上行走时，从起始方格到结束方格的不同路径的数目，每一个无障碍方格都要通过一次。</p>
+<p>示例 1：</p>
+<figure class="highlight angelscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">输入：[[<span class="number">1</span>,<span class="number">0</span>,<span class="number">0</span>,<span class="number">0</span>],[<span class="number">0</span>,<span class="number">0</span>,<span class="number">0</span>,<span class="number">0</span>],[<span class="number">0</span>,<span class="number">0</span>,<span class="number">2</span>,<span class="number">-1</span>]]</span><br><span class="line">输出：<span class="number">2</span></span><br><span class="line">解释：我们有以下两条路径：</span><br><span class="line"></span><br><span class="line"><span class="number">1.</span> (<span class="number">0</span>,<span class="number">0</span>),(<span class="number">0</span>,<span class="number">1</span>),(<span class="number">0</span>,<span class="number">2</span>),(<span class="number">0</span>,<span class="number">3</span>),(<span class="number">1</span>,<span class="number">3</span>),(<span class="number">1</span>,<span class="number">2</span>),(<span class="number">1</span>,<span class="number">1</span>),(<span class="number">1</span>,<span class="number">0</span>),(<span class="number">2</span>,<span class="number">0</span>),(<span class="number">2</span>,<span class="number">1</span>),(<span class="number">2</span>,<span class="number">2</span>)</span><br><span class="line"><span class="number">2.</span> (<span class="number">0</span>,<span class="number">0</span>),(<span class="number">1</span>,<span class="number">0</span>),(<span class="number">2</span>,<span class="number">0</span>),(<span class="number">2</span>,<span class="number">1</span>),(<span class="number">1</span>,<span class="number">1</span>),(<span class="number">0</span>,<span class="number">1</span>),(<span class="number">0</span>,<span class="number">2</span>),(<span class="number">0</span>,<span class="number">3</span>),(<span class="number">1</span>,<span class="number">3</span>),(<span class="number">1</span>,<span class="number">2</span>),(<span class="number">2</span>,<span class="number">2</span>)</span><br></pre></td></tr></table></figure>
+
+
+<p>示例 2：</p>
+<figure class="highlight angelscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">输入：[[<span class="number">1</span>,<span class="number">0</span>,<span class="number">0</span>,<span class="number">0</span>],[<span class="number">0</span>,<span class="number">0</span>,<span class="number">0</span>,<span class="number">0</span>],[<span class="number">0</span>,<span class="number">0</span>,<span class="number">0</span>,<span class="number">2</span>]]</span><br><span class="line">输出：<span class="number">4</span></span><br><span class="line">解释：我们有以下四条路径： </span><br><span class="line"></span><br><span class="line"><span class="number">1.</span> (<span class="number">0</span>,<span class="number">0</span>),(<span class="number">0</span>,<span class="number">1</span>),(<span class="number">0</span>,<span class="number">2</span>),(<span class="number">0</span>,<span class="number">3</span>),(<span class="number">1</span>,<span class="number">3</span>),(<span class="number">1</span>,<span class="number">2</span>),(<span class="number">1</span>,<span class="number">1</span>),(<span class="number">1</span>,<span class="number">0</span>),(<span class="number">2</span>,<span class="number">0</span>),(<span class="number">2</span>,<span class="number">1</span>),(<span class="number">2</span>,<span class="number">2</span>),(<span class="number">2</span>,<span class="number">3</span>)</span><br><span class="line"><span class="number">2.</span> (<span class="number">0</span>,<span class="number">0</span>),(<span class="number">0</span>,<span class="number">1</span>),(<span class="number">1</span>,<span class="number">1</span>),(<span class="number">1</span>,<span class="number">0</span>),(<span class="number">2</span>,<span class="number">0</span>),(<span class="number">2</span>,<span class="number">1</span>),(<span class="number">2</span>,<span class="number">2</span>),(<span class="number">1</span>,<span class="number">2</span>),(<span class="number">0</span>,<span class="number">2</span>),(<span class="number">0</span>,<span class="number">3</span>),(<span class="number">1</span>,<span class="number">3</span>),(<span class="number">2</span>,<span class="number">3</span>)</span><br><span class="line"><span class="number">3.</span> (<span class="number">0</span>,<span class="number">0</span>),(<span class="number">1</span>,<span class="number">0</span>),(<span class="number">2</span>,<span class="number">0</span>),(<span class="number">2</span>,<span class="number">1</span>),(<span class="number">2</span>,<span class="number">2</span>),(<span class="number">1</span>,<span class="number">2</span>),(<span class="number">1</span>,<span class="number">1</span>),(<span class="number">0</span>,<span class="number">1</span>),(<span class="number">0</span>,<span class="number">2</span>),(<span class="number">0</span>,<span class="number">3</span>),(<span class="number">1</span>,<span class="number">3</span>),(<span class="number">2</span>,<span class="number">3</span>)</span><br><span class="line"><span class="number">4.</span> (<span class="number">0</span>,<span class="number">0</span>),(<span class="number">1</span>,<span class="number">0</span>),(<span class="number">2</span>,<span class="number">0</span>),(<span class="number">2</span>,<span class="number">1</span>),(<span class="number">1</span>,<span class="number">1</span>),(<span class="number">0</span>,<span class="number">1</span>),(<span class="number">0</span>,<span class="number">2</span>),(<span class="number">0</span>,<span class="number">3</span>),(<span class="number">1</span>,<span class="number">3</span>),(<span class="number">1</span>,<span class="number">2</span>),(<span class="number">2</span>,<span class="number">2</span>),(<span class="number">2</span>,<span class="number">3</span>)</span><br></pre></td></tr></table></figure>
+
+
+<p>示例 3：</p>
+<figure class="highlight angelscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">输入：[[<span class="number">0</span>,<span class="number">1</span>],[<span class="number">2</span>,<span class="number">0</span>]]</span><br><span class="line">输出：<span class="number">0</span></span><br><span class="line">解释：</span><br><span class="line">没有一条路能完全穿过每一个空的方格一次。</span><br><span class="line">请注意，起始和结束方格可以位于网格中的任意位置。</span><br></pre></td></tr></table></figure>
+
+
+<p>提示：</p>
+<ul>
+<li><code>1 &lt;= grid.length * grid[0].length &lt;= 20</code></li>
+</ul>
+<h4 id="题解-6"><a href="#题解-6" class="headerlink" title="题解"></a>题解</h4><p>还算是比较简单的dfs，注意题目中说到的几个满足条件：</p>
+<ul>
+<li><p>从起点出发能到达终点</p>
+</li>
+<li><p>所有空格都要访问到</p>
+</li>
+</ul>
+<p>因此在dfs的时候要有地方可以记录已经访问过的空格个数</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">uniquePathsIII</span><span class="params">(grid [][]<span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">    start, end, m, n, emp := <span class="number">0</span>, <span class="number">0</span>, <span class="built_in">len</span>(grid), <span class="built_in">len</span>(grid[<span class="number">0</span>]), <span class="number">0</span></span><br><span class="line">    <span class="comment">// isVisited改成一维数组</span></span><br><span class="line">    isVisited := <span class="built_in">make</span>([]<span class="keyword">bool</span>, m*n)</span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; m; i++ &#123;</span><br><span class="line">        <span class="keyword">for</span> j := <span class="number">0</span>; j &lt; n; j++ &#123;</span><br><span class="line">            <span class="keyword">if</span> grid[i][j] == <span class="number">1</span> &#123;</span><br><span class="line">                start = i*n+j</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> grid[i][j] == <span class="number">2</span> &#123;</span><br><span class="line">                end = i*n+j</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> grid[i][j] == <span class="number">0</span> &#123;</span><br><span class="line">                <span class="comment">// 这里统计出空方格的个数，用于判断是否每个方格都走完了</span></span><br><span class="line">                <span class="comment">// 注意这里没有统计end，所以后面实施时emp+1</span></span><br><span class="line">                emp++</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="comment">// 将障碍方格置为访问过</span></span><br><span class="line">                isVisited[i*n+j] = <span class="literal">true</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    num := <span class="number">0</span></span><br><span class="line">    isVisited[start] = <span class="literal">true</span></span><br><span class="line">    dfs(grid, start, end, emp+<span class="number">1</span>, isVisited, &amp;num)</span><br><span class="line">    <span class="keyword">return</span> num</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">dfs</span><span class="params">(grid [][]<span class="keyword">int</span>, start, end, emp <span class="keyword">int</span>, isVisited []<span class="keyword">bool</span>, num *<span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> start == end &#123;</span><br><span class="line">		<span class="comment">// 如果所有空方格都访问过，则说明是一条</span></span><br><span class="line">		<span class="keyword">if</span> emp &lt;= <span class="number">0</span> &#123;</span><br><span class="line">			*num ++</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	nexts := [][]<span class="keyword">int</span>&#123;&#123;<span class="number">-1</span>, <span class="number">0</span>&#125;, &#123;<span class="number">1</span>, <span class="number">0</span>&#125;, &#123;<span class="number">0</span>, <span class="number">-1</span>&#125;, &#123;<span class="number">0</span>, <span class="number">1</span>&#125;&#125;</span><br><span class="line">	i, j := start/<span class="built_in">len</span>(grid[<span class="number">0</span>]), start%<span class="built_in">len</span>(grid[<span class="number">0</span>])</span><br><span class="line">	<span class="keyword">for</span> _, n := <span class="keyword">range</span> nexts &#123;</span><br><span class="line">		nStart := (i + n[<span class="number">0</span>])*<span class="built_in">len</span>(grid[<span class="number">0</span>]) + j + n[<span class="number">1</span>]</span><br><span class="line">		<span class="comment">// 跳过超出范围或者已经访问过（包含阻碍方格）</span></span><br><span class="line">		<span class="keyword">if</span> i + n[<span class="number">0</span>] &lt; <span class="number">0</span> || i + n[<span class="number">0</span>] &gt;= <span class="built_in">len</span>(grid) || j + n[<span class="number">1</span>] &lt; <span class="number">0</span> || j + n[<span class="number">1</span>] &gt;= <span class="built_in">len</span>(grid[<span class="number">0</span>]) || isVisited[nStart] &#123;</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line">		isVisited[nStart] = <span class="literal">true</span></span><br><span class="line">		dfs(grid, nStart, end, emp<span class="number">-1</span>, isVisited, num)</span><br><span class="line">        <span class="comment">// 注意isVisited是大家共享的，用过之后要改回来</span></span><br><span class="line">		isVisited[nStart] = <span class="literal">false</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="773-滑动谜题"><a href="#773-滑动谜题" class="headerlink" title="773. 滑动谜题"></a><a href="https://leetcode-cn.com/problems/sliding-puzzle/" target="_blank" rel="noopener">773. 滑动谜题</a></h3><h4 id="题目-7"><a href="#题目-7" class="headerlink" title="题目"></a>题目</h4><p>在一个 2 x 3 的板上（board）有 5 块砖瓦，用数字 1~5 来表示, 以及一块空缺用 0 来表示.</p>
+<p>一次移动定义为选择 0 与一个相邻的数字（上下左右）进行交换.</p>
+<p>最终当板 board 的结果是 [[1,2,3],[4,5,0]] 谜板被解开。</p>
+<p>给出一个谜板的初始状态，返回最少可以通过多少次移动解开谜板，如果不能解开谜板，则返回 -1 。</p>
+<p>示例：</p>
+<figure class="highlight angelscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">输入：board = [[<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>],[<span class="number">4</span>,<span class="number">0</span>,<span class="number">5</span>]]</span><br><span class="line">输出：<span class="number">1</span></span><br><span class="line">解释：交换 <span class="number">0</span> 和 <span class="number">5</span> ，<span class="number">1</span> 步完成</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight angelscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">输入：board = [[<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>],[<span class="number">5</span>,<span class="number">4</span>,<span class="number">0</span>]]</span><br><span class="line">输出：<span class="number">-1</span></span><br><span class="line">解释：没有办法完成谜板</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight angelscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">输入：board = [[<span class="number">4</span>,<span class="number">1</span>,<span class="number">2</span>],[<span class="number">5</span>,<span class="number">0</span>,<span class="number">3</span>]]</span><br><span class="line">输出：<span class="number">5</span></span><br><span class="line">解释：</span><br><span class="line">最少完成谜板的最少移动次数是 <span class="number">5</span> ，</span><br><span class="line">一种移动路径:</span><br><span class="line">尚未移动: [[<span class="number">4</span>,<span class="number">1</span>,<span class="number">2</span>],[<span class="number">5</span>,<span class="number">0</span>,<span class="number">3</span>]]</span><br><span class="line">移动 <span class="number">1</span> 次: [[<span class="number">4</span>,<span class="number">1</span>,<span class="number">2</span>],[<span class="number">0</span>,<span class="number">5</span>,<span class="number">3</span>]]</span><br><span class="line">移动 <span class="number">2</span> 次: [[<span class="number">0</span>,<span class="number">1</span>,<span class="number">2</span>],[<span class="number">4</span>,<span class="number">5</span>,<span class="number">3</span>]]</span><br><span class="line">移动 <span class="number">3</span> 次: [[<span class="number">1</span>,<span class="number">0</span>,<span class="number">2</span>],[<span class="number">4</span>,<span class="number">5</span>,<span class="number">3</span>]]</span><br><span class="line">移动 <span class="number">4</span> 次: [[<span class="number">1</span>,<span class="number">2</span>,<span class="number">0</span>],[<span class="number">4</span>,<span class="number">5</span>,<span class="number">3</span>]]</span><br><span class="line">移动 <span class="number">5</span> 次: [[<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>],[<span class="number">4</span>,<span class="number">5</span>,<span class="number">0</span>]]</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight angelscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">输入：board = [[<span class="number">3</span>,<span class="number">2</span>,<span class="number">4</span>],[<span class="number">1</span>,<span class="number">5</span>,<span class="number">0</span>]]</span><br><span class="line">输出：<span class="number">14</span></span><br></pre></td></tr></table></figure>
+
+<p>提示：</p>
+<ul>
+<li><code>board</code> 是一个如上所述的 2 x 3 的数组.</li>
+<li><code>board[i][j]</code> 是一个 [0, 1, 2, 3, 4, 5] 的排列.</li>
+</ul>
+<h4 id="题解-7"><a href="#题解-7" class="headerlink" title="题解"></a>题解</h4><p>典型的bfs，按层搜索</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">"strconv"</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">slidingPuzzle</span><span class="params">(board [][]<span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">    queue, set := []<span class="keyword">string</span>&#123;&#125;, <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">int</span>&#123;&#125;</span><br><span class="line">    b := <span class="string">""</span></span><br><span class="line">    <span class="keyword">for</span> i:=<span class="number">0</span>; i&lt;<span class="number">2</span>; i++ &#123;</span><br><span class="line">        <span class="keyword">for</span> j:=<span class="number">0</span>; j&lt;<span class="number">3</span>; j++ &#123;</span><br><span class="line">            b += strconv.Itoa(board[i][j])</span><br><span class="line">            <span class="keyword">if</span> board[i][j] == <span class="number">0</span> &#123;</span><br><span class="line">                <span class="comment">// 将0的位置记录在b的开头</span></span><br><span class="line">                b = strconv.Itoa(i*<span class="number">3</span>+j) + b</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    queue = <span class="built_in">append</span>(queue, b)</span><br><span class="line">    set[b[<span class="number">1</span>:]] = <span class="number">0</span></span><br><span class="line">    <span class="comment">// 记录每个位置可以移动的下一个位置</span></span><br><span class="line">    next := [][]<span class="keyword">int</span>&#123;&#123;<span class="number">3</span>, <span class="number">1</span>&#125;, &#123;<span class="number">4</span>, <span class="number">0</span>, <span class="number">2</span>&#125;, &#123;<span class="number">5</span>,<span class="number">1</span>&#125;, &#123;<span class="number">0</span>, <span class="number">4</span>&#125;, &#123;<span class="number">1</span>,<span class="number">3</span>,<span class="number">5</span>&#125;, &#123;<span class="number">2</span>, <span class="number">4</span>&#125;&#125;</span><br><span class="line">    <span class="keyword">for</span> <span class="built_in">len</span>(queue) &gt; <span class="number">0</span> &#123;</span><br><span class="line">        <span class="comment">// pop出队列中的第一个</span></span><br><span class="line">        <span class="comment">// zero是cur中0所在的索引</span></span><br><span class="line">        ind := <span class="keyword">int</span>(queue[<span class="number">0</span>][<span class="number">0</span>] - <span class="string">'0'</span>)</span><br><span class="line">        cur := queue[<span class="number">0</span>][<span class="number">1</span>:] <span class="comment">// 去掉索引</span></span><br><span class="line">        <span class="keyword">if</span> cur == <span class="string">"123450"</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> set[cur]</span><br><span class="line">        &#125;</span><br><span class="line">        queue = queue[<span class="number">1</span>:]</span><br><span class="line">        <span class="keyword">for</span> _, n := <span class="keyword">range</span> next[ind] &#123;</span><br><span class="line">            i, j := ind, n</span><br><span class="line">            <span class="keyword">if</span> i &gt; j &#123;</span><br><span class="line">                i, j = j, i</span><br><span class="line">            &#125;</span><br><span class="line">            nString := cur[:i] + cur[j:j+<span class="number">1</span>] + cur[i+<span class="number">1</span>:j] + cur[i:i+<span class="number">1</span>] + cur[j+<span class="number">1</span>:]</span><br><span class="line">            <span class="comment">// 如果之前的操作已经处理过，则跳过</span></span><br><span class="line">            <span class="keyword">if</span> _, ok := set[nString]; ok &#123;</span><br><span class="line">                <span class="keyword">continue</span></span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">// 否则记录步数并将新字符加入到队列中</span></span><br><span class="line">            set[nString] = set[cur] + <span class="number">1</span></span><br><span class="line">            queue = <span class="built_in">append</span>(queue, strconv.Itoa(n)+nString)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">-1</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="排序相关"><a href="#排序相关" class="headerlink" title="排序相关"></a>排序相关</h2><h3 id="406-根据身高重建队列"><a href="#406-根据身高重建队列" class="headerlink" title="406. 根据身高重建队列"></a><a href="https://leetcode-cn.com/problems/queue-reconstruction-by-height/" target="_blank" rel="noopener">406. 根据身高重建队列</a></h3><h4 id="题目-8"><a href="#题目-8" class="headerlink" title="题目"></a>题目</h4><p>假设有打乱顺序的一群人站成一个队列。 每个人由一个整数对(h, k)表示，其中h是这个人的身高，k是排在这个人前面且身高大于或等于h的人数。 编写一个算法来重建这个队列。</p>
+<p>注意：<br>总人数少于1100人。</p>
+<p>示例</p>
+<figure class="highlight angelscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">输入:</span><br><span class="line">[[<span class="number">7</span>,<span class="number">0</span>], [<span class="number">4</span>,<span class="number">4</span>], [<span class="number">7</span>,<span class="number">1</span>], [<span class="number">5</span>,<span class="number">0</span>], [<span class="number">6</span>,<span class="number">1</span>], [<span class="number">5</span>,<span class="number">2</span>]]</span><br><span class="line"></span><br><span class="line">输出:</span><br><span class="line">[[<span class="number">5</span>,<span class="number">0</span>], [<span class="number">7</span>,<span class="number">0</span>], [<span class="number">5</span>,<span class="number">2</span>], [<span class="number">6</span>,<span class="number">1</span>], [<span class="number">4</span>,<span class="number">4</span>], [<span class="number">7</span>,<span class="number">1</span>]]</span><br></pre></td></tr></table></figure>
+
+<h4 id="题解-8"><a href="#题解-8" class="headerlink" title="题解"></a>题解</h4><ul>
+<li><p>排序+按索引插入：排序的时候需要降序排序，并且对于h相同的元素，k值大的应该排在后面，降序排序完成之后，遍历这个序列，如果需要插入的这个元素的k值是小于需要返回的数组ret的长度，就需要将他插入到ret的索引为k的位置，否则加入到末尾就可以了</p>
+</li>
+<li><p>由于go语言并不支持链表，同时也不支持二维数组的排序，这里需要自行实现</p>
+</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">"sort"</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 这里实现一下[][]int二维数组的降序排列（实现Len、Less、Swap这三个接口，sort默认是升序）</span></span><br><span class="line"><span class="comment">// 由于是降序，所以Less()中是p[i][0] &gt; p[j][0]</span></span><br><span class="line"><span class="comment">// 需要注意的是，默认sort默认是升序的，Less()应该是p[i][0] &lt; p[j][0]</span></span><br><span class="line"><span class="keyword">type</span> People [][]<span class="keyword">int</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p People)</span> <span class="title">Len</span><span class="params">()</span> <span class="title">int</span></span> &#123; <span class="keyword">return</span> <span class="built_in">len</span>(p) &#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p People)</span> <span class="title">Less</span><span class="params">(i, j <span class="keyword">int</span>)</span> <span class="title">bool</span></span> &#123; <span class="keyword">return</span> p[i][<span class="number">0</span>] &gt; p[j][<span class="number">0</span>] || ( p[i][<span class="number">0</span>] == p[j][<span class="number">0</span>] &amp;&amp; p[i][<span class="number">1</span>] &lt; p[j][<span class="number">1</span>]) &#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p People)</span> <span class="title">Swap</span><span class="params">(i, j <span class="keyword">int</span>)</span></span> &#123; p[i][<span class="number">0</span>], p[i][<span class="number">1</span>], p[j][<span class="number">0</span>], p[j][<span class="number">1</span>] = p[j][<span class="number">0</span>], p[j][<span class="number">1</span>], p[i][<span class="number">0</span>], p[i][<span class="number">1</span>] &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">reconstructQueue</span><span class="params">(people [][]<span class="keyword">int</span>)</span> [][]<span class="title">int</span></span> &#123;</span><br><span class="line">    <span class="comment">// 先对其进行降序排列（注意h相同时，k大的在后面）</span></span><br><span class="line">    sort.Sort(People(people))</span><br><span class="line">    <span class="keyword">var</span> ret [][]<span class="keyword">int</span></span><br><span class="line">    <span class="keyword">for</span> _, p := <span class="keyword">range</span> people &#123;</span><br><span class="line">        <span class="comment">// 如果当前这个元素p需要insert的index是末尾，则直接append</span></span><br><span class="line">        <span class="keyword">if</span> <span class="built_in">len</span>(ret) &lt;= p[<span class="number">1</span>] &#123;</span><br><span class="line">            ret = <span class="built_in">append</span>(ret, p)</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">// 否则插入到p[1]这个位置</span></span><br><span class="line">            tmp := <span class="built_in">append</span>([][]<span class="keyword">int</span>&#123;&#125;, ret[p[<span class="number">1</span>]:]...) <span class="comment">//先保存末尾</span></span><br><span class="line">            ret = <span class="built_in">append</span>(ret[:p[<span class="number">1</span>]], p) <span class="comment">// 再将p插入</span></span><br><span class="line">            ret = <span class="built_in">append</span>(ret, tmp...)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> ret</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="899-有序队列"><a href="#899-有序队列" class="headerlink" title="899. 有序队列"></a><a href="https://leetcode-cn.com/problems/orderly-queue/" target="_blank" rel="noopener">899. 有序队列</a></h3><h4 id="题目-9"><a href="#题目-9" class="headerlink" title="题目"></a>题目</h4><p>给出了一个由小写字母组成的字符串 S。然后，我们可以进行任意次数的移动。</p>
+<p>在每次移动中，我们选择前 K 个字母中的一个（从左侧开始），将其从原位置移除，并放置在字符串的末尾。</p>
+<p>返回我们在任意次数的移动之后可以拥有的按字典顺序排列的最小字符串。</p>
+<p>示例 1：</p>
+<figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">输入：S = <span class="string">"cba"</span>, K = <span class="number">1</span></span><br><span class="line">输出：<span class="string">"acb"</span></span><br><span class="line">解释：</span><br><span class="line">在第一步中，我们将第一个字符（“c”）移动到最后，获得字符串 “<span class="keyword">bac”。</span></span><br><span class="line"><span class="keyword">在第二步中，我们将第一个字符（“b”）移动到最后，获得最终结果 </span>“acb”。</span><br></pre></td></tr></table></figure>
+
+
+<p>示例 2：</p>
+<figure class="highlight nix"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">输入：<span class="attr">S</span> = <span class="string">"baaca"</span>, <span class="attr">K</span> = <span class="number">3</span></span><br><span class="line">输出：<span class="string">"aaabc"</span></span><br><span class="line">解释：</span><br><span class="line">在第一步中，我们将第一个字符（“b”）移动到最后，获得字符串 “aacab”。</span><br><span class="line">在第二步中，我们将第三个字符（“c”）移动到最后，获得最终结果 “aaabc”。</span><br></pre></td></tr></table></figure>
+
+
+<p>提示：</p>
+<ul>
+<li><p>1 &lt;= K &lt;= S.length &lt;= 1000</p>
+</li>
+<li><p>S 只由小写字母组成。</p>
+</li>
+</ul>
+<h4 id="题解-9"><a href="#题解-9" class="headerlink" title="题解"></a>题解</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"strings"</span></span><br><span class="line">    <span class="string">"sort"</span></span><br><span class="line">)</span><br><span class="line"><span class="comment">// 注意go语言中的string中无法Swap，所以这里用[]byte</span></span><br><span class="line"><span class="keyword">type</span> String []<span class="keyword">byte</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s String)</span> <span class="title">Len</span><span class="params">()</span> <span class="title">int</span></span> &#123;<span class="keyword">return</span> <span class="built_in">len</span>(s)&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s String)</span> <span class="title">Less</span><span class="params">(i, j <span class="keyword">int</span>)</span> <span class="title">bool</span></span> &#123;<span class="keyword">return</span> s[i] &lt; s[j]&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s String)</span> <span class="title">Swap</span><span class="params">(i, j <span class="keyword">int</span>)</span></span> &#123;s[i], s[j] = s[j], s[i]&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">orderlyQueue</span><span class="params">(S <span class="keyword">string</span>, K <span class="keyword">int</span>)</span> <span class="title">string</span></span> &#123;</span><br><span class="line">    ret := S</span><br><span class="line">    <span class="keyword">if</span> K == <span class="number">1</span> &#123;</span><br><span class="line">        <span class="comment">// K=1时，S只能不停循环，因此循环到S最小就好</span></span><br><span class="line">        <span class="keyword">for</span> i:=<span class="number">1</span>; i &lt; <span class="built_in">len</span>(S); i++ &#123;</span><br><span class="line">            <span class="keyword">if</span> strings.Compare(S[i:]+S[:i], ret) &lt; <span class="number">0</span> &#123;</span><br><span class="line">                ret = S[i:]+S[:i]</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// K&gt;1时，S可以通过冒泡算法实现排序</span></span><br><span class="line">        ss := String(S)</span><br><span class="line">        sort.Sort(ss)</span><br><span class="line">        ret = <span class="keyword">string</span>(ss)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> ret</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="23-合并K个排序链表"><a href="#23-合并K个排序链表" class="headerlink" title="23. 合并K个排序链表"></a><a href="https://leetcode-cn.com/problems/merge-k-sorted-lists/" target="_blank" rel="noopener">23. 合并K个排序链表</a></h3><h4 id="题目-10"><a href="#题目-10" class="headerlink" title="题目"></a>题目</h4><p>合并 k 个排序链表，返回合并后的排序链表。请分析和描述算法的复杂度。</p>
+<p>示例:</p>
+<figure class="highlight angelscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">输入:</span><br><span class="line">[</span><br><span class="line">  <span class="number">1</span>-&gt;<span class="number">4</span>-&gt;<span class="number">5</span>,</span><br><span class="line">  <span class="number">1</span>-&gt;<span class="number">3</span>-&gt;<span class="number">4</span>,</span><br><span class="line">  <span class="number">2</span>-&gt;<span class="number">6</span></span><br><span class="line">]</span><br><span class="line">输出: <span class="number">1</span>-&gt;<span class="number">1</span>-&gt;<span class="number">2</span>-&gt;<span class="number">3</span>-&gt;<span class="number">4</span>-&gt;<span class="number">4</span>-&gt;<span class="number">5</span>-&gt;<span class="number">6</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="题解-10"><a href="#题解-10" class="headerlink" title="题解"></a>题解</h4><p>这个题目首先可以使用暴力的方法求解，也就是每次遍历每个链表，取其中最小的那个，只不过这样到后面很多链表都取完了，一个循环里面每个链表还是会遍历一遍，浪费时间。更好的方式是通过归并排序，也就是二分的思路，将n个链表分成二叉树两两归并。</p>
+<ul>
+<li><p>暴力解法</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Definition for singly-linked list.</span></span><br><span class="line"><span class="comment"> * type ListNode struct &#123;</span></span><br><span class="line"><span class="comment"> *     Val int</span></span><br><span class="line"><span class="comment"> *     Next *ListNode</span></span><br><span class="line"><span class="comment"> * &#125;</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">mergeKLists</span><span class="params">(lists []*ListNode)</span> *<span class="title">ListNode</span></span> &#123;</span><br><span class="line">    <span class="comment">// 一个迭代里面只处理一个最小的node，然后递归</span></span><br><span class="line">    minVal, index :=  <span class="number">65535</span>, <span class="number">0</span></span><br><span class="line">    <span class="keyword">for</span> i, list := <span class="keyword">range</span> lists &#123;</span><br><span class="line">        <span class="keyword">if</span> list != <span class="literal">nil</span> &amp;&amp; list.Val &lt; minVal &#123;</span><br><span class="line">            minVal = list.Val</span><br><span class="line">            index = i</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> minVal == <span class="number">65535</span> &amp;&amp; index == <span class="number">0</span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line">    head := lists[index]</span><br><span class="line">    lists[index] = lists[index].Next</span><br><span class="line">    head.Next = mergeKLists(lists)</span><br><span class="line">    <span class="keyword">return</span> head</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+</li>
+</ul>
+<ul>
+<li><p>归并排序</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Definition for singly-linked list.</span></span><br><span class="line"><span class="comment"> * type ListNode struct &#123;</span></span><br><span class="line"><span class="comment"> *     Val int</span></span><br><span class="line"><span class="comment"> *     Next *ListNode</span></span><br><span class="line"><span class="comment"> * &#125;</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">mergeKLists</span><span class="params">(lists []*ListNode)</span> *<span class="title">ListNode</span></span> &#123;</span><br><span class="line">    n := <span class="built_in">len</span>(lists)</span><br><span class="line">    <span class="keyword">if</span> n &gt; <span class="number">2</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> mergeKLists([]*ListNode&#123;mergeKLists(lists[:n/<span class="number">2</span>]), mergeKLists(lists[n/<span class="number">2</span>:])&#125;)</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> n == <span class="number">1</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> lists[<span class="number">0</span>]</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> n == <span class="number">2</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> lists[<span class="number">0</span>] == <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> lists[<span class="number">1</span>]</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> lists[<span class="number">1</span>] == <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> lists[<span class="number">0</span>]</span><br><span class="line">        &#125;</span><br><span class="line">        a, b := lists[<span class="number">0</span>], lists[<span class="number">1</span>]</span><br><span class="line">        <span class="keyword">if</span> a.Val &gt; b.Val &#123;</span><br><span class="line">            a, b = lists[<span class="number">1</span>], lists[<span class="number">0</span>]</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 保证cur永远是比b更小的node</span></span><br><span class="line">        cur := a</span><br><span class="line">        <span class="keyword">for</span> ; cur.Next != <span class="literal">nil</span>; cur = cur.Next &#123;</span><br><span class="line">            <span class="keyword">if</span> cur.Next.Val &gt; b.Val &#123;</span><br><span class="line">                cur.Next, b = b, cur.Next</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        cur.Next = b</span><br><span class="line">        <span class="keyword">return</span> a</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+</li>
+</ul>
+<h2 id="动态规划相关"><a href="#动态规划相关" class="headerlink" title="动态规划相关"></a>动态规划相关</h2><h3 id="72-编辑距离"><a href="#72-编辑距离" class="headerlink" title="72. 编辑距离"></a><a href="https://leetcode-cn.com/problems/edit-distance/" target="_blank" rel="noopener">72. 编辑距离</a></h3><h4 id="题目-11"><a href="#题目-11" class="headerlink" title="题目"></a>题目</h4><p>给定两个单词 word1 和 word2，计算出将 word1 转换成 word2 所使用的最少操作数 。</p>
+<p>你可以对一个单词进行如下三种操作：</p>
+<p>插入一个字符<br>删除一个字符<br>替换一个字符<br>示例 1:</p>
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">输入: word1 = <span class="string">"horse"</span>, word2 = <span class="string">"ros"</span></span><br><span class="line">输出: <span class="number">3</span></span><br><span class="line">解释: </span><br><span class="line"><span class="function"><span class="title">horse</span> -&gt;</span> rorse (将 <span class="string">'h'</span> 替换为 <span class="string">'r'</span>)</span><br><span class="line"><span class="function"><span class="title">rorse</span> -&gt;</span> rose (删除 <span class="string">'r'</span>)</span><br><span class="line"><span class="function"><span class="title">rose</span> -&gt;</span> ros (删除 <span class="string">'e'</span>)</span><br></pre></td></tr></table></figure>
+
+
+<p>示例 2:</p>
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">输入: word1 = <span class="string">"intention"</span>, word2 = <span class="string">"execution"</span></span><br><span class="line">输出: <span class="number">5</span></span><br><span class="line">解释: </span><br><span class="line"><span class="function"><span class="title">intention</span> -&gt;</span> inention (删除 <span class="string">'t'</span>)</span><br><span class="line"><span class="function"><span class="title">inention</span> -&gt;</span> enention (将 <span class="string">'i'</span> 替换为 <span class="string">'e'</span>)</span><br><span class="line"><span class="function"><span class="title">enention</span> -&gt;</span> exention (将 <span class="string">'n'</span> 替换为 <span class="string">'x'</span>)</span><br><span class="line"><span class="function"><span class="title">exention</span> -&gt;</span> exection (将 <span class="string">'n'</span> 替换为 <span class="string">'c'</span>)</span><br><span class="line"><span class="function"><span class="title">exection</span> -&gt;</span> execution (插入 <span class="string">'u'</span>)</span><br></pre></td></tr></table></figure>
+
+<h4 id="题解-11"><a href="#题解-11" class="headerlink" title="题解"></a>题解</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 动态规划，假设dp[i][j]为截取word1中的前i个字符和word2中的前j个字符进行转换的最小距离</span></span><br><span class="line"><span class="comment">// 那么dp[i][j]跟dp[i-1][j-1]、dp[i-1][j]、dp[i][j-1]有关，详情请看代码注释</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">minDistance</span><span class="params">(word1 <span class="keyword">string</span>, word2 <span class="keyword">string</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">    <span class="comment">// 初始化dp数组，注意数组的长度要比输入的字符串的长度长1个单位</span></span><br><span class="line">    <span class="keyword">var</span> dp [][]<span class="keyword">int</span></span><br><span class="line">    <span class="keyword">for</span> i:=<span class="number">0</span>; i &lt; <span class="built_in">len</span>(word1)+<span class="number">1</span>; i++ &#123;</span><br><span class="line">        sli := <span class="built_in">make</span>([]<span class="keyword">int</span>, <span class="built_in">len</span>(word2)+<span class="number">1</span>)</span><br><span class="line">        dp = <span class="built_in">append</span>(dp, sli)</span><br><span class="line">        <span class="comment">// 注意当word2截取的长度为0时，word1只需将自己的所有字符删掉即可</span></span><br><span class="line">        dp[i][<span class="number">0</span>] = i</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span> j:=<span class="number">0</span>; j &lt;= <span class="built_in">len</span>(word2); j++ &#123;</span><br><span class="line">        <span class="comment">// 注意当word1截取的长度为0时，word1只需将word2的所有字符即可</span></span><br><span class="line">        dp[<span class="number">0</span>][j] = j</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 注意这里i是word1中截取的长度，j是word2中截取的长度，所以都从1开始算起</span></span><br><span class="line">    <span class="keyword">for</span> i:=<span class="number">1</span>; i &lt; <span class="built_in">len</span>(word1)+<span class="number">1</span>; i++ &#123;</span><br><span class="line">        <span class="keyword">for</span> j:=<span class="number">1</span>; j &lt; <span class="built_in">len</span>(word2)+<span class="number">1</span>; j++&#123;</span><br><span class="line">            <span class="keyword">if</span> word1[i<span class="number">-1</span>] == word2[j<span class="number">-1</span>] &#123;</span><br><span class="line">                <span class="comment">// 如果word1[i-1]（第i个字符）和word2[j-1]相同，则不需要做任何操作</span></span><br><span class="line">                dp[i][j] = dp[i<span class="number">-1</span>][j<span class="number">-1</span>]</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="comment">// 否则取最小代价的方式</span></span><br><span class="line">                dp[i][j] = min(min(dp[i][j<span class="number">-1</span>], dp[i<span class="number">-1</span>][j]), dp[i<span class="number">-1</span>][j<span class="number">-1</span>]) +<span class="number">1</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> dp[<span class="built_in">len</span>(word1)][<span class="built_in">len</span>(word2)]</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// go中没有实现int类型的min函数，所以只能自己实现</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">min</span><span class="params">(i, j <span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> i &gt; j &#123;</span><br><span class="line">        <span class="keyword">return</span> j</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> i</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="960-删列造序-III"><a href="#960-删列造序-III" class="headerlink" title="960. 删列造序 III"></a><a href="https://leetcode-cn.com/problems/delete-columns-to-make-sorted-iii/" target="_blank" rel="noopener">960. 删列造序 III</a></h3><h4 id="题目-12"><a href="#题目-12" class="headerlink" title="题目"></a>题目</h4><p>给定由 N 个小写字母字符串组成的数组 A，其中每个字符串长度相等。</p>
+<p>选取一个删除索引序列，对于 A 中的每个字符串，删除对应每个索引处的字符。</p>
+<p>比如，有 <code>A = [&quot;babca&quot;,&quot;bbazb&quot;]</code>，删除索引序列 <code>{0, 1, 4}</code>，删除后 <code>A</code> 为<code>[&quot;bc&quot;,&quot;az&quot;]</code>。</p>
+<p>假设，我们选择了一组删除索引 D，那么在执行删除操作之后，最终得到的数组的行中的每个元素都是按字典序排列的。</p>
+<p>清楚起见，<code>A[0]</code> 是按字典序排列的（即，<code>A[0][0] &lt;= A[0][1] &lt;= ... &lt;= A[0][A[0].length - 1]</code>），A[1] 是按字典序排列的（即，<code>A[1][0] &lt;= A[1][1] &lt;= ... &lt;= A[1][A[1].length - 1]</code>），依此类推。</p>
+<p>请你返回 <code>D.length</code> 的最小可能值。</p>
+<p>示例 1：</p>
+<figure class="highlight lsl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">输入：[<span class="string">"babca"</span>,<span class="string">"bbazb"</span>]</span><br><span class="line">输出：<span class="number">3</span></span><br><span class="line">解释：</span><br><span class="line">删除 <span class="number">0</span>、<span class="number">1</span> 和 <span class="number">4</span> 这三列后，最终得到的数组是 A = [<span class="string">"bc"</span>, <span class="string">"az"</span>]。</span><br><span class="line">这两行是分别按字典序排列的（即，A[<span class="number">0</span>][<span class="number">0</span>] &lt;= A[<span class="number">0</span>][<span class="number">1</span>] 且 A[<span class="number">1</span>][<span class="number">0</span>] &lt;= A[<span class="number">1</span>][<span class="number">1</span>]）。</span><br><span class="line">注意，A[<span class="number">0</span>] &gt; A[<span class="number">1</span>] —— 数组 A 不一定是按字典序排列的。</span><br></pre></td></tr></table></figure>
+
+
+<p>示例 2：</p>
+<figure class="highlight lsl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">输入：[<span class="string">"edcba"</span>]</span><br><span class="line">输出：<span class="number">4</span></span><br><span class="line">解释：如果删除的列少于 <span class="number">4</span> 列，则剩下的行都不会按字典序排列。</span><br></pre></td></tr></table></figure>
+
+
+<p>示例 3：</p>
+<figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">输入：<span class="selector-attr">[<span class="string">"ghi"</span>,<span class="string">"def"</span>,<span class="string">"abc"</span>]</span></span><br><span class="line">输出：0</span><br><span class="line">解释：所有行都已按字典序排列。</span><br></pre></td></tr></table></figure>
+
+
+<p>提示：</p>
+<ul>
+<li><code>1 &lt;= A.length &lt;= 100</code></li>
+<li><code>1 &lt;= A[i].length &lt;= 100</code></li>
+</ul>
+<h4 id="题解-12"><a href="#题解-12" class="headerlink" title="题解"></a>题解</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 动态规划，可以按照最长子序列来做，先计算最长子序列，然后用原始序列的长度减去最长子序列的长度就得到答案</span></span><br><span class="line"><span class="comment">// 转移方程： d[i] = max&#123;d[i-1], d[k]+1: k为0~i-1并且s[i]&gt;s[k]&#125;</span></span><br><span class="line"><span class="comment">// d[i]表示的是以s[i]结尾的子序列的最大长度</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">minDeletionSize</span><span class="params">(A []<span class="keyword">string</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">    d := <span class="built_in">make</span>([]<span class="keyword">int</span>, <span class="built_in">len</span>(A[<span class="number">0</span>]))</span><br><span class="line">    d[<span class="number">0</span>] = <span class="number">1</span> <span class="comment">// d[0]其实值为1</span></span><br><span class="line">    <span class="keyword">for</span> i:=<span class="number">1</span>; i&lt;<span class="built_in">len</span>(A[<span class="number">0</span>]); i++ &#123;</span><br><span class="line">        d[i] = <span class="number">1</span></span><br><span class="line">        <span class="keyword">for</span> j := <span class="number">0</span>; j &lt; i; j++ &#123;</span><br><span class="line">            <span class="keyword">if</span> cmp(A, j, i) &amp;&amp; d[j] + <span class="number">1</span> &gt; d[i] &#123;</span><br><span class="line">                d[i] = d[j] + <span class="number">1</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    max := <span class="number">0</span></span><br><span class="line">    <span class="keyword">for</span> _,v := <span class="keyword">range</span> d &#123;</span><br><span class="line">        <span class="keyword">if</span> v &gt; max &#123;</span><br><span class="line">            max = v</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">len</span>(A[<span class="number">0</span>]) - max</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 只有A中所有字符串的s[i]&gt;=s[j]时才会返回true</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">cmp</span><span class="params">(A []<span class="keyword">string</span>, j, i <span class="keyword">int</span>)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> _, v := <span class="keyword">range</span> A &#123;</span><br><span class="line">        <span class="keyword">if</span> v[i] &lt; v[j] &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h3 id="312-戳气球"><a href="#312-戳气球" class="headerlink" title="312. 戳气球"></a><a href="https://leetcode-cn.com/problems/burst-balloons/" target="_blank" rel="noopener">312. 戳气球</a></h3><h4 id="题目-13"><a href="#题目-13" class="headerlink" title="题目"></a>题目</h4><p>有 n 个气球，编号为0 到 n-1，每个气球上都标有一个数字，这些数字存在数组 nums 中。</p>
+<p>现在要求你戳破所有的气球。每当你戳破一个气球 i 时，你可以获得 nums[left] * nums[i] * nums[right] 个硬币。 这里的 left 和 right 代表和 i 相邻的两个气球的序号。注意当你戳破了气球 i 后，气球 left 和气球 right 就变成了相邻的气球。</p>
+<p>求所能获得硬币的最大数量。</p>
+<p>说明:</p>
+<ul>
+<li><p>你可以假设 nums[-1] = nums[n] = 1，但注意它们不是真实存在的所以并不能被戳破。</p>
+</li>
+<li><p>0 ≤ n ≤ 500, 0 ≤ nums[i] ≤ 100</p>
+<p>示例:</p>
+</li>
+</ul>
+<figure class="highlight angelscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">输入: [<span class="number">3</span>,<span class="number">1</span>,<span class="number">5</span>,<span class="number">8</span>]</span><br><span class="line">输出: <span class="number">167</span> </span><br><span class="line">解释: nums = [<span class="number">3</span>,<span class="number">1</span>,<span class="number">5</span>,<span class="number">8</span>] --&gt; [<span class="number">3</span>,<span class="number">5</span>,<span class="number">8</span>] --&gt;   [<span class="number">3</span>,<span class="number">8</span>]   --&gt;  [<span class="number">8</span>]  --&gt; []</span><br><span class="line">     coins =  <span class="number">3</span>*<span class="number">1</span>*<span class="number">5</span>      +  <span class="number">3</span>*<span class="number">5</span>*<span class="number">8</span>    +  <span class="number">1</span>*<span class="number">3</span>*<span class="number">8</span>      + <span class="number">1</span>*<span class="number">8</span>*<span class="number">1</span>   = <span class="number">167</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="题解-13"><a href="#题解-13" class="headerlink" title="题解"></a>题解</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 使用动态规划来完成</span></span><br><span class="line"><span class="comment">// 对于[i, j]区间内（不包含i和j）的气球的最大收益，我们假设k是最后一个戳破的气球</span></span><br><span class="line"><span class="comment">// 则转移方程为d[i][j]=max&#123;d[i][k-1]+d[k+1][j]+nums[k]*nums[i]*nums[j]，k从i+1到j-1&#125;</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">maxCoins</span><span class="params">(nums []<span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">    <span class="comment">// 在nums前后分别加一个1的元素</span></span><br><span class="line">    le := <span class="built_in">len</span>(nums) + <span class="number">2</span></span><br><span class="line">    nu := <span class="built_in">make</span>([]<span class="keyword">int</span>, le)</span><br><span class="line">    nu[<span class="number">0</span>], nu[le<span class="number">-1</span>] = <span class="number">1</span>, <span class="number">1</span></span><br><span class="line">    <span class="keyword">for</span> i:=<span class="number">1</span> ; i&lt;le<span class="number">-1</span>; i++&#123;</span><br><span class="line">        nu[i] = nums[i<span class="number">-1</span>]</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// dp[i][j]表示nums中戳破i到j中间（不包含i和j）这些气球的最大收益，因此本题的返回值是dp[0][le]</span></span><br><span class="line">    <span class="keyword">var</span> dp [][]<span class="keyword">int</span></span><br><span class="line">    <span class="keyword">for</span> i:=<span class="number">0</span>; i &lt; le; i++ &#123;</span><br><span class="line">        sl := <span class="built_in">make</span>([]<span class="keyword">int</span>, le)</span><br><span class="line">        dp = <span class="built_in">append</span>(dp, sl)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// i表示的是长度，对于这个问题而言，我们要先求出小区间内的最大分数，才能推到大区间的最大分数</span></span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">2</span>; i &lt; le; i ++ &#123;</span><br><span class="line">        <span class="keyword">for</span> left := <span class="number">0</span>; left &lt; le - i; left++ &#123;</span><br><span class="line">            <span class="comment">// </span></span><br><span class="line">            right := left + i</span><br><span class="line">            <span class="keyword">for</span> k := left+<span class="number">1</span>; k &lt; right; k++ &#123;</span><br><span class="line">                value := dp[left][k] + dp[k][right] + nu[left]*nu[k]*nu[right]</span><br><span class="line">                <span class="keyword">if</span> value &gt; dp[left][right] &#123;</span><br><span class="line">                    dp[left][right] = value</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> dp[<span class="number">0</span>][le<span class="number">-1</span>]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="546-移除盒子"><a href="#546-移除盒子" class="headerlink" title="546. 移除盒子"></a><a href="https://leetcode-cn.com/problems/remove-boxes/" target="_blank" rel="noopener">546. 移除盒子</a></h3><h4 id="题目-14"><a href="#题目-14" class="headerlink" title="题目"></a>题目</h4><p>给出一些不同颜色的盒子，盒子的颜色由数字表示，即不同的数字表示不同的颜色。<br>你将经过若干轮操作去去掉盒子，直到所有的盒子都去掉为止。每一轮你可以移除具有相同颜色的连续 k 个盒子（k &gt;= 1），这样一轮之后你将得到 k*k 个积分。<br>当你将所有盒子都去掉之后，求你能获得的最大积分和。</p>
+<p>示例 1：<br>输入:</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[<span class="number">1</span>, <span class="number">3</span>, <span class="number">2</span>, <span class="number">2</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">3</span>, <span class="number">1</span>]</span><br></pre></td></tr></table></figure>
+
+
+<p>输出:</p>
+<figure class="highlight angelscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">23</span></span><br></pre></td></tr></table></figure>
+
+
+<p>解释:</p>
+<figure class="highlight angelscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[<span class="number">1</span>, <span class="number">3</span>, <span class="number">2</span>, <span class="number">2</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">3</span>, <span class="number">1</span>] </span><br><span class="line">----&gt; [<span class="number">1</span>, <span class="number">3</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">3</span>, <span class="number">1</span>] (<span class="number">3</span>*<span class="number">3</span>=<span class="number">9</span> 分) </span><br><span class="line">----&gt; [<span class="number">1</span>, <span class="number">3</span>, <span class="number">3</span>, <span class="number">3</span>, <span class="number">1</span>] (<span class="number">1</span>*<span class="number">1</span>=<span class="number">1</span> 分) </span><br><span class="line">----&gt; [<span class="number">1</span>, <span class="number">1</span>] (<span class="number">3</span>*<span class="number">3</span>=<span class="number">9</span> 分) </span><br><span class="line">----&gt; [] (<span class="number">2</span>*<span class="number">2</span>=<span class="number">4</span> 分)</span><br></pre></td></tr></table></figure>
+
+
+<p>提示：盒子的总数 n 不会超过 100。</p>
+<h4 id="题解-14"><a href="#题解-14" class="headerlink" title="题解"></a>题解</h4><p>解法一：暴力求解（dfs），会超时，时间复杂度为O(n!)，使用[3,8,8,5,5,3,9,2,4,4,6,5,8,4,8,6,9,6,2,8,6,4,1,9,5,3,10,5,3,3,9,8,8,6,5,3,7,4,9,6,3,9,4,3,5,10,7,6,10,7]这个长度为50的用例在桌面云上跑了一下午都没跑完，50!=3e64，这是因为有太多重复的计算，特别是算到后面newBox只有几个元素的时候很多情况会重复，在这个基础上可以通过map来存储已经算过的数组，但是会消耗较多空间。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">removeBoxes</span><span class="params">(boxes []<span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">    max := <span class="number">0</span></span><br><span class="line">    <span class="keyword">for</span> i:=<span class="number">0</span>; i&lt;<span class="built_in">len</span>(boxes); i++ &#123;</span><br><span class="line">        <span class="comment">// 如果当前盒子跟之前的盒子颜色相同，则结果跟上次算出来的结果一样，直接跳过</span></span><br><span class="line">        <span class="keyword">if</span> i&gt;<span class="number">0</span> &amp;&amp; boxes[i] == boxes[i<span class="number">-1</span>] &#123;</span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 如果i是同颜色盒子的起点，那么往后找所有跟i相同颜色的盒子，k-1是终点</span></span><br><span class="line">        k := i+<span class="number">1</span></span><br><span class="line">        <span class="comment">// 将k遍历到末尾</span></span><br><span class="line">        <span class="keyword">for</span> ; k&lt;<span class="built_in">len</span>(boxes) &amp;&amp; boxes[k] == boxes[i]; k++ &#123;&#125;</span><br><span class="line">        <span class="comment">// 建立一个新slice计算去掉i相邻的通颜色的盒子之后的分数</span></span><br><span class="line">		newBox := <span class="built_in">append</span>([]<span class="keyword">int</span>&#123;&#125;, boxes[:i]...)</span><br><span class="line">		newBox = <span class="built_in">append</span>(newBox, boxes[k:]...)</span><br><span class="line">        <span class="keyword">if</span> point := (k-i)*(k-i) + removeBoxes(newBox); point&gt;max &#123;</span><br><span class="line">            max = point</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> max</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解法二：动态规划</p>
+<p>这个题目的dp转移方程理解起来比较困难，我们先给出结果，以题目中的示例为例</p>
+<ul>
+<li><p>转移方程的定义</p>
+<p>对于<code>[1, 3, 2, 2, 2, 3, 4, 3, 1]</code>这个数组<code>boxes</code>，我们假设<code>dp[i][j][k]</code>表示的是<code>boxes[i:j]</code>这个子序列的最大积分，而k表示j右侧有k个<strong>与之相邻</strong>的boxes[j]，那么我们最终要求的解就是<code>dp[0][n-1][0]</code>，其中n是boxes的长度。</p>
+</li>
+<li><p>转移方程的状态表述</p>
+<p>为了求解<code>dp[i][j][k]</code>，我们需要根据<code>boxes[i:j]</code>中的情况和j后面的与<code>boxes[j]</code>相同的<strong>相邻</strong>盒子个数。首先暂且不管k是怎么算出来的，我们先看<code>boxes[i:j]</code>中的情况：</p>
+<ul>
+<li>假如<code>boxes[i:j-1]</code>中有跟<code>boxes[j]</code>相同的盒子<code>boxes[m]</code>，那么我们认为可以先去掉<code>boxes[m+1:j-1]</code>（即计算<code>dp[m+1][j-1][0]</code>，之所以k是0，是因为这一段不考虑j-1后面是否有跟j-1重复的，注意<code>boxes[m+1:j-1]</code>中可能还会跟<code>boxes[j]</code>相同的盒子，我们都会遍历到），然后再计算<code>dp[i][m][k+1]</code>获得积分，这样<code>dp[i][j][k]=dp[i][m][k+1]+dp[m+1][j-1][0]</code>，当前我们也可以直接先去掉右边所有与<code>boxes[j]</code>相同的<strong>相邻</strong>盒子并得到积分<code>(k+1)*(k+1)</code>，这个跟下面的情况相同</li>
+<li>假如<code>boxes[i:j-1]</code>中没有有跟<code>boxes[j]</code>相同的盒子，那么我们可以直接去掉<code>box[j]</code>和右边所有与<code>boxes[j]</code>相同的<strong>相邻</strong>盒子并得到积分<code>(k+1)*(k+1)</code>，这样<code>dp[i][j][k]=dp[i][j-1][0]+(k+1)*(k+1)</code>，这里之所以<code>dp[i][j-1][0]</code>中k=0是因为j-1后面已经没有其他盒子了</li>
+</ul>
+<p>总结下来<code>dp[i][j][k]</code>总共有两种情况：</p>
+<p><code>dp[i][j][k]=max{dp[i][m][k+1]+dp[m+1][j-1][0], dp[i][j-1][0]+(k+1)*(k+1)}</code></p>
+</li>
+</ul>
+<p>针对这个方程，我们可以使用题目中的示例演算一下</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">removeBoxes</span><span class="params">(boxes []<span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">    dp := [][][]<span class="keyword">int</span>&#123;&#125;</span><br><span class="line">    <span class="keyword">for</span> i:=<span class="number">0</span>; i&lt; <span class="built_in">len</span>(boxes); i++ &#123;</span><br><span class="line">        dp1 := [][]<span class="keyword">int</span>&#123;&#125;</span><br><span class="line">        <span class="keyword">for</span> j:=<span class="number">0</span>; j&lt; <span class="built_in">len</span>(boxes); j++ &#123;</span><br><span class="line">            dp1 = <span class="built_in">append</span>(dp1, <span class="built_in">make</span>([]<span class="keyword">int</span>, <span class="built_in">len</span>(boxes)))</span><br><span class="line">        &#125;</span><br><span class="line">        dp = <span class="built_in">append</span>(dp, dp1)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> maxPoint(<span class="number">0</span>, <span class="built_in">len</span>(boxes)<span class="number">-1</span>, <span class="number">0</span>, dp, boxes)</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">maxPoint</span><span class="params">(i, j, k <span class="keyword">int</span>, dp [][][]<span class="keyword">int</span>, boxes []<span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> dp[i][j][k] &gt; <span class="number">0</span> || i &gt; j &#123;</span><br><span class="line">        <span class="keyword">return</span> dp[i][j][k]</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> i == j &#123;</span><br><span class="line">        dp[i][j][k] = (k+<span class="number">1</span>)*(k+<span class="number">1</span>)</span><br><span class="line">        <span class="keyword">return</span> dp[i][j][k]</span><br><span class="line">    &#125;</span><br><span class="line">    max := maxPoint(i, j<span class="number">-1</span>, <span class="number">0</span>, dp, boxes) + (k+<span class="number">1</span>)*(k+<span class="number">1</span>)</span><br><span class="line">    <span class="keyword">for</span> m:=i; m&lt;j; m++ &#123;</span><br><span class="line">        <span class="keyword">if</span> boxes[m] != boxes[j] &#123;</span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> cur := maxPoint(i, m, k+<span class="number">1</span>, dp, boxes) + maxPoint(m+<span class="number">1</span>, j<span class="number">-1</span>, <span class="number">0</span>, dp, boxes); cur &gt; max &#123;</span><br><span class="line">            max = cur</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    dp[i][j][k] = max</span><br><span class="line">    <span class="keyword">return</span> max</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="174-地下城游戏"><a href="#174-地下城游戏" class="headerlink" title="174. 地下城游戏"></a><a href="https://leetcode-cn.com/problems/dungeon-game/" target="_blank" rel="noopener">174. 地下城游戏</a></h3><h4 id="题目-15"><a href="#题目-15" class="headerlink" title="题目"></a>题目</h4><p>一些恶魔抓住了公主（P）并将她关在了地下城的右下角。地下城是由 M x N 个房间组成的二维网格。我们英勇的骑士（K）最初被安置在左上角的房间里，他必须穿过地下城并通过对抗恶魔来拯救公主。</p>
+<p>骑士的初始健康点数为一个正整数。如果他的健康点数在某一时刻降至 0 或以下，他会立即死亡。</p>
+<p>有些房间由恶魔守卫，因此骑士在进入这些房间时会失去健康点数（若房间里的值为负整数，则表示骑士将损失健康点数）；其他房间要么是空的（房间里的值为 0），要么包含增加骑士健康点数的魔法球（若房间里的值为正整数，则表示骑士将增加健康点数）。</p>
+<p>为了尽快到达公主，骑士决定每次只向右或向下移动一步。</p>
+<p>编写一个函数来计算确保骑士能够拯救到公主所需的最低初始健康点数。</p>
+<p>例如，考虑到如下布局的地下城，如果骑士遵循最佳路径 右 -&gt; 右 -&gt; 下 -&gt; 下，则骑士的初始健康点数至少为 7。</p>
+<table>
+<thead>
+<tr>
+<th>-2 (K)</th>
+<th>-3</th>
+<th>3</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>-5</td>
+<td>-10</td>
+<td>1</td>
+</tr>
+<tr>
+<td>10</td>
+<td>30</td>
+<td>-5 (P)</td>
+</tr>
+</tbody></table>
+<p>说明:</p>
+<p>骑士的健康点数没有上限。</p>
+<p>任何房间都可能对骑士的健康点数造成威胁，也可能增加骑士的健康点数，包括骑士进入的左上角房间以及公主被监禁的右下角房间。</p>
+<h4 id="题解-15"><a href="#题解-15" class="headerlink" title="题解"></a>题解</h4><p>这道题目如果通过正向的思维（从骑士的位置走到公主的位置）来暴力求解会产生一定的问题：</p>
+<ul>
+<li>骑士在<code>[i,j]</code>位置时可以选择从<code>[i-1,j]</code>或者<code>[i,j-1]</code>过来，在选择时应该以什么策略进行判断？<code>d[i][j]</code>里面是不是还需要记录初始最小血量和当前的血量？</li>
+<li>这里既需要考虑初始血量最小，又需要考虑有些房间是可以加血的，那么在选择下一步的时候到底应该选初始血量小的还是走过去之后当前血量更大的？</li>
+</ul>
+<p>以上问题其实没有办法判断，无法使用贪心的方式来决策。那么我们可以换一个思路，从后往前看：假如骑士从<code>[i,j]</code>这个位置出发到达终点那么最少需要多少初始血量：</p>
+<ul>
+<li>我们可以从后往前看，我们假设<code>d[i][j]</code>表示的是骑士从<code>[i,j]</code>这个位置出发所需要的初始血量，当<code>d[i][j]</code>是负数时表示初始需要血量，且后面缺少的血量为<code>1-d[i][j]</code>，<code>d[i][j]</code>是0则表示初始不需要血</li>
+<li>我们知道骑士的下一步只能走右边或者下面，因此<code>d[i][j]</code>只与<code>d[i][j+1]</code>（右）和<code>d[i+1][j]</code>（下）有关，因此我们要选的是<code>d[i][j+1]</code>和<code>d[i+1][j]</code>中血量最大的那个，这样对于<code>d[i][j]</code>是最有利的，因此转移方程就变成了<code>d[i][j]= max{d[i][j+1], d[i+1][j]} + l[i][j]</code>，如果算下来<code>d[i][j]&gt;0</code>，那么就说明骑士从<code>[i,j]</code>这个位置出发到达终点是不需要血量的，也就是<code>d[i][j]=0</code></li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 动态规划</span></span><br><span class="line"><span class="comment">// dp[j] = max&#123;dp[j], dp[j+1]&#125; + dungeon[i][j]</span></span><br><span class="line"><span class="comment">// 其中i表示房间的行数，j表示列数，dp[j]表示骑士剩余的血量</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">calculateMinimumHP</span><span class="params">(dungeon [][]<span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">    n, m := <span class="built_in">len</span>(dungeon), <span class="built_in">len</span>(dungeon[<span class="number">0</span>])</span><br><span class="line">    dp:=<span class="built_in">make</span>([]<span class="keyword">int</span>, m)</span><br><span class="line">    <span class="comment">// 初始化血量</span></span><br><span class="line">    dp[m<span class="number">-1</span>]=<span class="number">0</span></span><br><span class="line">    <span class="keyword">for</span> i:=<span class="number">0</span>;i&lt;m<span class="number">-1</span>;i++&#123;</span><br><span class="line">        dp[i]=<span class="number">-65535</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span> i:=n<span class="number">-1</span>;i&gt;=<span class="number">0</span>;i--&#123;</span><br><span class="line">        <span class="comment">// 对于最后一列，只跟下面的一行的状态有关</span></span><br><span class="line">        dp[m<span class="number">-1</span>]+=dungeon[i][m<span class="number">-1</span>]</span><br><span class="line">        <span class="keyword">if</span> dp[m<span class="number">-1</span>]&gt;<span class="number">0</span> &#123;</span><br><span class="line">            dp[m<span class="number">-1</span>]=<span class="number">0</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 对于其他列，需要同时考虑下面一行和右边一列的状态，两者取血量最大的那个</span></span><br><span class="line">        <span class="keyword">for</span> j:=m<span class="number">-2</span>;j&gt;=<span class="number">0</span>;j--&#123;</span><br><span class="line">            <span class="keyword">if</span> dp[j+<span class="number">1</span>]&gt;dp[j] &#123;</span><br><span class="line">                dp[j]=dp[j+<span class="number">1</span>]</span><br><span class="line">            &#125;</span><br><span class="line">            dp[j]+=dungeon[i][j]</span><br><span class="line">            <span class="keyword">if</span> dp[j]&gt;<span class="number">0</span> &#123;</span><br><span class="line">                dp[j]=<span class="number">0</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span>-dp[<span class="number">0</span>]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="图论相关"><a href="#图论相关" class="headerlink" title="图论相关"></a>图论相关</h2><h3 id="778-水位上升的泳池中游泳"><a href="#778-水位上升的泳池中游泳" class="headerlink" title="778. 水位上升的泳池中游泳"></a><a href="https://leetcode-cn.com/problems/swim-in-rising-water/" target="_blank" rel="noopener">778. 水位上升的泳池中游泳</a></h3><h4 id="题目-16"><a href="#题目-16" class="headerlink" title="题目"></a>题目</h4><p>在一个 N x N 的坐标方格 grid 中，每一个方格的值 grid[i][j] 表示在位置 (i,j) 的平台高度。</p>
+<p>现在开始下雨了。当时间为 t 时，此时雨水导致水池中任意位置的水位为 t 。你可以从一个平台游向四周相邻的任意一个平台，但是前提是此时水位必须同时淹没这两个平台。假定你可以瞬间移动无限距离，也就是默认在方格内部游动是不耗时的。当然，在你游泳的时候你必须待在坐标方格里面。</p>
+<p>你从坐标方格的左上平台 (0，0) 出发。最少耗时多久你才能到达坐标方格的右下平台 (N-1, N-1)？</p>
+<p>示例 1:</p>
+<blockquote>
+<p>输入: [[0,2],[1,3]]<br>输出: 3<br>解释:<br>时间为0时，你位于坐标方格的位置为 (0, 0)。<br>此时你不能游向任意方向，因为四个相邻方向平台的高度都大于当前时间为 0 时的水位。</p>
+<p>等时间到达 3 时，你才可以游向平台 (1, 1). 因为此时的水位是 3，坐标方格中的平台没有比水位 3 更高的，所以你可以游向坐标方格中的任意位置</p>
+</blockquote>
+<p>示例2:</p>
+<blockquote>
+<p>输入: [[0,1,2,3,4],[24,23,22,21,5],[12,13,14,15,16],[11,17,18,19,20],[10,9,8,7,6]]<br>输入: 16<br>解释:<br> <strong>0  1  2  3  4</strong><br>24 23 22 21  <strong>5</strong><br><strong>12 13 14 15 16</strong><br><strong>11</strong> 17 18 19 20<br><strong>10  9  8  7  6</strong></p>
+<p>最终的路线用加粗进行了标记。<br>我们必须等到时间为 16，此时才能保证平台 (0, 0) 和 (4, 4) 是连通的</p>
+</blockquote>
+<p>提示:</p>
+<ul>
+<li><code>2 &lt;= N &lt;= 50</code>.</li>
+<li><code>grid[i][j]</code> 位于区间 <code>[0, ..., N*N - 1]</code> 内。</li>
+</ul>
+<h4 id="题解-16"><a href="#题解-16" class="headerlink" title="题解"></a>题解</h4><p>本题实际上是一个变形的最短路径问题，使用dijkstra就可以实现了，注意dijkstra算法的基本思路：</p>
+<ul>
+<li>计算新加入到最短路径中的节点k相邻的所有未加入的节点到起始点的距离，如果经过节点k到达这个节点的距离更短，则更新这个节点的最小距离</li>
+<li>遍历所有未加入最短路径的节点，找到距离起始节点最近的那个节点并加入到最短路径中，然后重复上一步</li>
+</ul>
+<p>注意上述循环可以反过来，只要控制好循环之前的初始化就好了</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">swimInWater</span><span class="params">(grid [][]<span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">    n, m := <span class="built_in">len</span>(grid), <span class="built_in">len</span>(grid[<span class="number">0</span>])</span><br><span class="line">    <span class="comment">// 初始化dist和isVisited</span></span><br><span class="line">    <span class="comment">// dist[i][j]表示[i][j]到[0][0]的距离</span></span><br><span class="line">    dist := [][]<span class="keyword">int</span>&#123;&#125;</span><br><span class="line">    <span class="comment">// isVisited[i][j]表示[i][j]是否已经加入路径中</span></span><br><span class="line">    isVisited := [][]<span class="keyword">bool</span>&#123;&#125;</span><br><span class="line">    <span class="keyword">for</span> i:=<span class="number">0</span>; i&lt;n; i++&#123;</span><br><span class="line">        dist = <span class="built_in">append</span>(dist, <span class="built_in">make</span>([]<span class="keyword">int</span>, m))</span><br><span class="line">        isVisited = <span class="built_in">append</span>(isVisited, <span class="built_in">make</span>([]<span class="keyword">bool</span>, m))</span><br><span class="line">        <span class="keyword">for</span> j:=<span class="number">0</span>; j &lt; m; j++ &#123;</span><br><span class="line">            dist[i][j] = <span class="number">65535</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    dist[<span class="number">0</span>][<span class="number">0</span>] = grid[<span class="number">0</span>][<span class="number">0</span>]</span><br><span class="line">    isVisited[<span class="number">0</span>][<span class="number">0</span>]=<span class="literal">true</span></span><br><span class="line">    curi, curj := <span class="number">0</span>, <span class="number">0</span></span><br><span class="line">    <span class="comment">// 以下是dijkstra算法的改造</span></span><br><span class="line">    <span class="keyword">for</span> curi!=n<span class="number">-1</span> || curj!=m<span class="number">-1</span> &#123;</span><br><span class="line">        <span class="comment">// 先更新刚加入路径的节点所带来的影响，更新该节点周围节点的路径</span></span><br><span class="line">        arounds := [][]<span class="keyword">int</span>&#123;&#123;<span class="number">0</span>,<span class="number">-1</span>&#125;,&#123;<span class="number">0</span>,<span class="number">1</span>&#125;,&#123;<span class="number">-1</span>,<span class="number">0</span>&#125;,&#123;<span class="number">1</span>,<span class="number">0</span>&#125;&#125;</span><br><span class="line">        <span class="keyword">for</span> _, around := <span class="keyword">range</span> arounds &#123;</span><br><span class="line">            nexti, nextj := curi+around[<span class="number">0</span>], curj+around[<span class="number">1</span>]</span><br><span class="line">            <span class="keyword">if</span> nexti&lt;n &amp;&amp; nexti&gt;=<span class="number">0</span> &amp;&amp; nextj&lt;m &amp;&amp; nextj&gt;=<span class="number">0</span> &amp;&amp; !isVisited[nexti][nextj] &#123;</span><br><span class="line">				dist[nexti][nextj]=dist[curi][curj]</span><br><span class="line">				<span class="comment">// 对于水位更高的地方，水位等于当前的 否则等于当前的</span></span><br><span class="line">				<span class="keyword">if</span> grid[nexti][nextj] &gt; dist[curi][curj] &#123;</span><br><span class="line">					dist[nexti][nextj]=grid[nexti][nextj]</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        minDist := <span class="number">65535</span></span><br><span class="line">        <span class="comment">// 先找到还未加入路径且离起始点最近的节点</span></span><br><span class="line">        <span class="keyword">for</span> i:=<span class="number">0</span>; i&lt;n; i++&#123;</span><br><span class="line">            <span class="keyword">for</span> j:=<span class="number">0</span>; j &lt; m; j++ &#123;</span><br><span class="line">                <span class="keyword">if</span> !isVisited[i][j] &amp;&amp; dist[i][j] &lt; minDist &#123;</span><br><span class="line">                    minDist, curi, curj = dist[i][j], i, j</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 将新加入的节点标记为已经加入路径</span></span><br><span class="line">        isVisited[curi][curj]=<span class="literal">true</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> dist[n<span class="number">-1</span>][m<span class="number">-1</span>]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>yost
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://yost.top/2019/09/26/leetcode-review/" title="leetcode题解持续更新">http://yost.top/2019/09/26/leetcode-review/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/leetcode/" rel="tag"># leetcode</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/08/01/inside-list-watch-in-k8s/" rel="prev" title="深入理解k8s中的list-watch机制">
+      <i class="fa fa-chevron-left"></i> 深入理解k8s中的list-watch机制
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/12/04/linmu-leetcode/" rel="next" title="leetcode课程记录（讲师：林沐）">
+      leetcode课程记录（讲师：林沐） <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#搜索相关"><span class="nav-text">搜索相关</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#301-删除无效的括号"><span class="nav-text">301. 删除无效的括号</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#题目"><span class="nav-text">题目</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#题解"><span class="nav-text">题解</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#239-滑动窗口最大值"><span class="nav-text">239. 滑动窗口最大值</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#题目-1"><span class="nav-text">题目</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#题解-1"><span class="nav-text">题解</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#128-最长连续序列"><span class="nav-text">128. 最长连续序列</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#题目-2"><span class="nav-text">题目</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#题解-2"><span class="nav-text">题解</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1147-段式回文"><span class="nav-text">1147. 段式回文</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#题目-3"><span class="nav-text">题目</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#题解-3"><span class="nav-text">题解</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#76-最小覆盖子串"><span class="nav-text">76. 最小覆盖子串</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#题目-4"><span class="nav-text">题目</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#题解-4"><span class="nav-text">题解</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#124-二叉树中的最大路径和"><span class="nav-text">124. 二叉树中的最大路径和</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#题目-5"><span class="nav-text">题目</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#题解-5"><span class="nav-text">题解</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#980-不同路径-III"><span class="nav-text">980. 不同路径 III</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#题目-6"><span class="nav-text">题目</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#题解-6"><span class="nav-text">题解</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#773-滑动谜题"><span class="nav-text">773. 滑动谜题</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#题目-7"><span class="nav-text">题目</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#题解-7"><span class="nav-text">题解</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#排序相关"><span class="nav-text">排序相关</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#406-根据身高重建队列"><span class="nav-text">406. 根据身高重建队列</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#题目-8"><span class="nav-text">题目</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#题解-8"><span class="nav-text">题解</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#899-有序队列"><span class="nav-text">899. 有序队列</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#题目-9"><span class="nav-text">题目</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#题解-9"><span class="nav-text">题解</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#23-合并K个排序链表"><span class="nav-text">23. 合并K个排序链表</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#题目-10"><span class="nav-text">题目</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#题解-10"><span class="nav-text">题解</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#动态规划相关"><span class="nav-text">动态规划相关</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#72-编辑距离"><span class="nav-text">72. 编辑距离</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#题目-11"><span class="nav-text">题目</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#题解-11"><span class="nav-text">题解</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#960-删列造序-III"><span class="nav-text">960. 删列造序 III</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#题目-12"><span class="nav-text">题目</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#题解-12"><span class="nav-text">题解</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#312-戳气球"><span class="nav-text">312. 戳气球</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#题目-13"><span class="nav-text">题目</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#题解-13"><span class="nav-text">题解</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#546-移除盒子"><span class="nav-text">546. 移除盒子</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#题目-14"><span class="nav-text">题目</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#题解-14"><span class="nav-text">题解</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#174-地下城游戏"><span class="nav-text">174. 地下城游戏</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#题目-15"><span class="nav-text">题目</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#题解-15"><span class="nav-text">题解</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#图论相关"><span class="nav-text">图论相关</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#778-水位上升的泳池中游泳"><span class="nav-text">778. 水位上升的泳池中游泳</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#题目-16"><span class="nav-text">题目</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#题解-16"><span class="nav-text">题解</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">yost</p>
+  <div class="site-description" itemprop="description">种一棵树最好的时间是十年前，其次是现在~</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">12</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">yost</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+      <span class="post-meta-item-text">站点总字数：</span>
+    <span title="站点总字数">179k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">2:42</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script color='0,0,255' opacity='0.5' zIndex='-1' count='50' src="/lib/canvas-nest/canvas-nest-nomobile.min.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

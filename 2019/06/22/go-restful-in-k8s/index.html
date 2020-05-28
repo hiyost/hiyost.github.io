@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"yost.top","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="go-restful库是一个用go语言实现的REST风格的Web服务框架， 1 关键数据结构对于任何代码，数据结构是基础，搞清楚了数据结构才能搞清楚代码运行的逻辑。借用钟大师的一段话：  数据结构是什么？数据结构就是舞台上的角色，而函数方法就是这些角色之间演出的一幕幕戏。对象是有生命的，从创建到数据流转，从产生到消亡。而作为开发者来说，首先是搞懂这些人物设定，是关公还是秦琼，是红脸还是黑脸？看懂了">
+<meta property="og:type" content="article">
+<meta property="og:title" content="k8s中的go-restful库">
+<meta property="og:url" content="http://yost.top/2019/06/22/go-restful-in-k8s/index.html">
+<meta property="og:site_name" content="yost">
+<meta property="og:description" content="go-restful库是一个用go语言实现的REST风格的Web服务框架， 1 关键数据结构对于任何代码，数据结构是基础，搞清楚了数据结构才能搞清楚代码运行的逻辑。借用钟大师的一段话：  数据结构是什么？数据结构就是舞台上的角色，而函数方法就是这些角色之间演出的一幕幕戏。对象是有生命的，从创建到数据流转，从产生到消亡。而作为开发者来说，首先是搞懂这些人物设定，是关公还是秦琼，是红脸还是黑脸？看懂了">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-06-22T08:29:18.000Z">
+<meta property="article:modified_time" content="2020-05-20T12:07:05.850Z">
+<meta property="article:author" content="yost">
+<meta property="article:tag" content="code, package, rest">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://yost.top/2019/06/22/go-restful-in-k8s/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>k8s中的go-restful库 | yost</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">yost</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yost.top/2019/06/22/go-restful-in-k8s/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="yost">
+      <meta itemprop="description" content="种一棵树最好的时间是十年前，其次是现在~">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="yost">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          k8s中的go-restful库
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-06-22 16:29:18" itemprop="dateCreated datePublished" datetime="2019-06-22T16:29:18+08:00">2019-06-22</time>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>3.1k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>3 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><a href="https://github.com/emicklei/go-restful" target="_blank" rel="noopener">go-restful</a>库是一个用go语言实现的REST风格的Web服务框架，</p>
+<h2 id="1-关键数据结构"><a href="#1-关键数据结构" class="headerlink" title="1 关键数据结构"></a>1 关键数据结构</h2><p>对于任何代码，数据结构是基础，搞清楚了数据结构才能搞清楚代码运行的逻辑。借用钟大师的一段话：</p>
+<blockquote>
+<p>数据结构是什么？数据结构就是舞台上的角色，而函数方法就是这些角色之间演出的一幕幕戏。对象是有生命的，从创建到数据流转，从产生到消亡。而作为开发者来说，首先是搞懂这些人物设定，是关公还是秦琼，是红脸还是黑脸？看懂了人，就看懂了戏。   ——摘自钟大师的<a href="http://www.dockone.io/article/895" target="_blank" rel="noopener">博客</a></p>
+</blockquote>
+<p>因此在分析go-restful这个库的功能和使用方法之前，我们先来了解一下这个库的几个关键数据结构。</p>
+<a id="more"></a>
+
+<h3 id="1-1-Container"><a href="#1-1-Container" class="headerlink" title="1.1 Container"></a>1.1 <code>Container</code></h3><p><code>Container</code>对应的是一个server端中所有API的集合，一般一个server中包含一个<code>Container</code>即可。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Container holds a collection of WebServices and a http.ServeMux to dispatch http requests.</span></span><br><span class="line"><span class="comment">// The requests are further dispatched to routes of WebServices using a RouteSelector</span></span><br><span class="line"><span class="keyword">type</span> Container <span class="keyword">struct</span> &#123;</span><br><span class="line">	webServicesLock        sync.RWMutex</span><br><span class="line">	webServices            []*WebService</span><br><span class="line">	ServeMux               *http.ServeMux</span><br><span class="line">	isRegisteredOnRoot     <span class="keyword">bool</span></span><br><span class="line">	containerFilters       []FilterFunction</span><br><span class="line">	doNotRecover           <span class="keyword">bool</span> <span class="comment">// default is true</span></span><br><span class="line">	recoverHandleFunc      RecoverHandleFunction</span><br><span class="line">	serviceErrorHandleFunc ServiceErrorHandleFunction</span><br><span class="line">	router                 RouteSelector <span class="comment">// default is a CurlyRouter (RouterJSR311 is a slower alternative)</span></span><br><span class="line">	contentEncodingEnabled <span class="keyword">bool</span>          <span class="comment">// default is false</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>这其中有2个元素特别关键：</p>
+<ul>
+<li><code>webServices</code>，后文会继续说明</li>
+<li><code>ServeMux</code>，这个其实就是go的<code>http</code>库中的<code>ServeMux</code>，也就是路由规则器，这个是go中起<code>server</code>的关键数据结构，其中包含了路由与对应处理函数的map，这个是注册API的关键</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 源码位于go的原生库中：src/net/http/server.go</span></span><br><span class="line"><span class="comment">// ServeMux is an HTTP request multiplexer.</span></span><br><span class="line"><span class="comment">// It matches the URL of each incoming request against a list of registered</span></span><br><span class="line"><span class="comment">// patterns and calls the handler for the pattern that</span></span><br><span class="line"><span class="comment">// most closely matches the URL.</span></span><br><span class="line"><span class="keyword">type</span> ServeMux <span class="keyword">struct</span> &#123;</span><br><span class="line">	mu    sync.RWMutex</span><br><span class="line">	m     <span class="keyword">map</span>[<span class="keyword">string</span>]muxEntry</span><br><span class="line">	hosts <span class="keyword">bool</span> <span class="comment">// whether any patterns contain hostnames</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> muxEntry <span class="keyword">struct</span> &#123;</span><br><span class="line">	h       Handler</span><br><span class="line">	pattern <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// A Handler responds to an HTTP request.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// ServeHTTP should write reply headers and data to the ResponseWriter</span></span><br><span class="line"><span class="comment">// and then return. Returning signals that the request is finished; it</span></span><br><span class="line"><span class="comment">// is not valid to use the ResponseWriter or read from the</span></span><br><span class="line"><span class="comment">// Request.Body after or concurrently with the completion of the</span></span><br><span class="line"><span class="comment">// ServeHTTP call.</span></span><br><span class="line"><span class="keyword">type</span> Handler <span class="keyword">interface</span> &#123;</span><br><span class="line">	ServeHTTP(ResponseWriter, *Request)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>通过<code>ServeMux</code>数据结构可以很清楚地推断出server端再收到请求之后做的事情：先根据请求的URL再map中找到对应注册的<code>Handler</code>，再调用<code>Handler</code>实现的<code>ServeHTTP(ResponseWriter, *Request)</code>函数来处理请求。</p>
+<h3 id="1-2-WebService"><a href="#1-2-WebService" class="headerlink" title="1.2 WebService"></a>1.2 <code>WebService</code></h3><p><code>WebService</code>是</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// WebService holds a collection of Route values that bind a Http Method + URL Path to a function.</span></span><br><span class="line"><span class="keyword">type</span> WebService <span class="keyword">struct</span> &#123;</span><br><span class="line">	rootPath       <span class="keyword">string</span></span><br><span class="line">	pathExpr       *pathExpression <span class="comment">// cached compilation of rootPath as RegExp</span></span><br><span class="line">	routes         []Route</span><br><span class="line">	produces       []<span class="keyword">string</span></span><br><span class="line">	consumes       []<span class="keyword">string</span></span><br><span class="line">	pathParameters []*Parameter</span><br><span class="line">	filters        []FilterFunction</span><br><span class="line">	documentation  <span class="keyword">string</span></span><br><span class="line">	apiVersion     <span class="keyword">string</span></span><br><span class="line"></span><br><span class="line">	typeNameHandleFunc TypeNameHandleFunction</span><br><span class="line"></span><br><span class="line">	dynamicRoutes <span class="keyword">bool</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// protects 'routes' if dynamic routes are enabled</span></span><br><span class="line">	routesLock sync.RWMutex</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="1-3-Route"><a href="#1-3-Route" class="headerlink" title="1.3 Route"></a>1.3 <code>Route</code></h3><p><code>Route</code>中绑定了某一个资源的方法和路径所对应的handler函数，是最小的API操作单位。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Route binds a HTTP Method,Path,Consumes combination to a RouteFunction.</span></span><br><span class="line"><span class="keyword">type</span> Route <span class="keyword">struct</span> &#123;</span><br><span class="line">	Method   <span class="keyword">string</span></span><br><span class="line">	Produces []<span class="keyword">string</span></span><br><span class="line">	Consumes []<span class="keyword">string</span></span><br><span class="line">	Path     <span class="keyword">string</span> <span class="comment">// webservice root path + described path</span></span><br><span class="line">	Function RouteFunction</span><br><span class="line">	Filters  []FilterFunction</span><br><span class="line"></span><br><span class="line">	<span class="comment">// cached values for dispatching</span></span><br><span class="line">	relativePath <span class="keyword">string</span></span><br><span class="line">	pathParts    []<span class="keyword">string</span></span><br><span class="line">	pathExpr     *pathExpression <span class="comment">// cached compilation of relativePath as RegExp</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// documentation</span></span><br><span class="line">	Doc                     <span class="keyword">string</span></span><br><span class="line">	Notes                   <span class="keyword">string</span></span><br><span class="line">	Operation               <span class="keyword">string</span></span><br><span class="line">	ParameterDocs           []*Parameter</span><br><span class="line">	ResponseErrors          <span class="keyword">map</span>[<span class="keyword">int</span>]ResponseError</span><br><span class="line">	ReadSample, WriteSample <span class="keyword">interface</span>&#123;&#125; <span class="comment">// structs that model an example request or response payload</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Extra information used to store custom information about the route.</span></span><br><span class="line">	Metadata <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="2-使用方法"><a href="#2-使用方法" class="headerlink" title="2 使用方法"></a>2 使用方法</h2>
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>yost
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://yost.top/2019/06/22/go-restful-in-k8s/" title="k8s中的go-restful库">http://yost.top/2019/06/22/go-restful-in-k8s/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/code-package-rest/" rel="tag"># code, package, rest</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/06/22/deep-in-kube-apiserver/" rel="prev" title="kube-apiserver代码解读">
+      <i class="fa fa-chevron-left"></i> kube-apiserver代码解读
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/07/16/how-to-analysis-commit/" rel="next" title="如何整理和分析commit">
+      如何整理和分析commit <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-关键数据结构"><span class="nav-text">1 关键数据结构</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-Container"><span class="nav-text">1.1 Container</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-WebService"><span class="nav-text">1.2 WebService</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-Route"><span class="nav-text">1.3 Route</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-使用方法"><span class="nav-text">2 使用方法</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">yost</p>
+  <div class="site-description" itemprop="description">种一棵树最好的时间是十年前，其次是现在~</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">12</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">yost</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+      <span class="post-meta-item-text">站点总字数：</span>
+    <span title="站点总字数">179k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">2:42</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script color='0,0,255' opacity='0.5' zIndex='-1' count='50' src="/lib/canvas-nest/canvas-nest-nomobile.min.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

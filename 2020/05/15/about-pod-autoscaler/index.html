@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"yost.top","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="Pod 水平自动伸缩（Horizontal Pod Autoscaler）是k8s的kube-controller-manager中已经集成的一个controller，主要功能是根据pod当前的资源使用率来对deploy&#x2F;rs自动扩缩容。详细介绍可以参考社区的官方文档。 对于Pod 水平自动伸缩而言，最重要的就是其扩缩容的算法，社区原生的算法主要就是根据当前实例个数、当前metric指标和hpa中">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每周学习一个组件系列之Horizontal Pod Autoscaler">
+<meta property="og:url" content="http://yost.top/2020/05/15/about-pod-autoscaler/index.html">
+<meta property="og:site_name" content="yost">
+<meta property="og:description" content="Pod 水平自动伸缩（Horizontal Pod Autoscaler）是k8s的kube-controller-manager中已经集成的一个controller，主要功能是根据pod当前的资源使用率来对deploy&#x2F;rs自动扩缩容。详细介绍可以参考社区的官方文档。 对于Pod 水平自动伸缩而言，最重要的就是其扩缩容的算法，社区原生的算法主要就是根据当前实例个数、当前metric指标和hpa中">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-05-15T08:05:00.000Z">
+<meta property="article:modified_time" content="2020-05-28T14:36:45.074Z">
+<meta property="article:author" content="yost">
+<meta property="article:tag" content="autoscaler">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://yost.top/2020/05/15/about-pod-autoscaler/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>每周学习一个组件系列之Horizontal Pod Autoscaler | yost</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">yost</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yost.top/2020/05/15/about-pod-autoscaler/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="yost">
+      <meta itemprop="description" content="种一棵树最好的时间是十年前，其次是现在~">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="yost">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          每周学习一个组件系列之Horizontal Pod Autoscaler
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-05-15 16:05:00" itemprop="dateCreated datePublished" datetime="2020-05-15T16:05:00+08:00">2020-05-15</time>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>23k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>21 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>Pod 水平自动伸缩（Horizontal Pod Autoscaler）是k8s的<code>kube-controller-manager</code>中已经集成的一个<code>controller</code>，主要功能是根据pod当前的资源使用率来对deploy/rs自动扩缩容。详细介绍可以参考社区的<a href="https://kubernetes.io/zh/docs/tasks/run-application/horizontal-pod-autoscale/" target="_blank" rel="noopener">官方文档</a>。</p>
+<p>对于Pod 水平自动伸缩而言，最重要的就是其扩缩容的算法，社区原生的算法主要就是根据当前实例个数、当前metric指标和hpa中设置的期望指标来计算的，具体可以看2.2章节。</p>
+<blockquote>
+<p>期望副本数 = ceil[当前副本数 * ( 当前指标 / 期望指标 )]</p>
+</blockquote>
+<a id="more"></a> 
+
+<h3 id="1、启动参数"><a href="#1、启动参数" class="headerlink" title="1、启动参数"></a>1、启动参数</h3><p><code>kube-controller-manager</code>中包含了多个跟Pod 水平自动伸缩相关的启动参数：</p>
+<table>
+<thead>
+<tr>
+<th>参数名</th>
+<th>参数解释</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>horizontal-pod-autoscaler-sync-period</td>
+<td>controller控制循环的检查周期（默认值为15秒）</td>
+</tr>
+<tr>
+<td>horizontal-pod-autoscaler-upscale-delay</td>
+<td>上次扩容之后，再次扩容需要等待的时间，默认</td>
+</tr>
+<tr>
+<td>horizontal-pod-autoscaler-downscale-stabilization</td>
+<td>上次缩容执行结束后，再次执行缩容的间隔，默认5分钟</td>
+</tr>
+<tr>
+<td>horizontal-pod-autoscaler-downscale-delay</td>
+<td>上次扩容之后，再次扩容需要等待的时间，</td>
+</tr>
+<tr>
+<td>horizontal-pod-autoscaler-tolerance</td>
+<td>缩放比例的容忍值，默认为0.1，即在0.9~1.1不会触发扩缩容</td>
+</tr>
+<tr>
+<td>horizontal-pod-autoscaler-use-rest-clients</td>
+<td>使用rest client获取metric数据，支持custom metric时需要使用</td>
+</tr>
+<tr>
+<td>horizontal-pod-autoscaler-cpu-initialization-period</td>
+<td>pod 的初始化时间， 在此时间内的 pod，CPU 资源指标将不会被采纳</td>
+</tr>
+<tr>
+<td>horizontal-pod-autoscaler-initial-readiness-delay</td>
+<td>pod 准备时间， 在此时间内的 pod 统统被认为未就绪</td>
+</tr>
+</tbody></table>
+<h3 id="2、处理逻辑"><a href="#2、处理逻辑" class="headerlink" title="2、处理逻辑"></a>2、处理逻辑</h3><h4 id="2-1、资源使用率来源"><a href="#2-1、资源使用率来源" class="headerlink" title="2.1、资源使用率来源"></a>2.1、资源使用率来源</h4><p>控制器将从一系列的聚合 API（<code>metrics.k8s.io</code>、<code>custom.metrics.k8s.io</code>和<code>external.metrics.k8s.io</code>） 中获取指标数据。 <code>metrics.k8s.io</code> API 通常由 <code>metrics-server</code>（需要额外部署）提供。通过 <code>metrics-server</code>获取到的数据如下，其中包含有cpu和memory的使用量：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">[paas@192-168-199-200 ~]$ curl 127.0.0.1:8080/apis/metrics.k8s.io/v1beta1/namespaces/default/pods/test-delete-bcf859ddb-b7mjd</span><br><span class="line">&#123;</span><br><span class="line">  "kind": "PodMetrics",</span><br><span class="line">  "apiVersion": "metrics.k8s.io/v1beta1",</span><br><span class="line">  "metadata": &#123;</span><br><span class="line">    "name": "test-delete-bcf859ddb-b7mjd",</span><br><span class="line">    "namespace": "default",</span><br><span class="line">    "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/default/pods/test-delete-bcf859ddb-b7mjd",</span><br><span class="line">    "creationTimestamp": "2020-05-22T02:58:34Z"</span><br><span class="line">  &#125;,</span><br><span class="line">  "timestamp": "2020-05-22T02:58:01Z",</span><br><span class="line">  "window": "30s",</span><br><span class="line">  "containers": [</span><br><span class="line">    &#123;</span><br><span class="line">      "name": "container-0",</span><br><span class="line">      "usage": &#123;</span><br><span class="line">        "cpu": "0",</span><br><span class="line">        "memory": "1396Ki"</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到通过<code>metrics-server</code>获取数据是以pod为单位的，在<code>Pod Autoscaler</code>中，也是以pod为单位来做的自动伸缩。</p>
+<p><code>custom.metrics.k8s.io</code>需要配合<code>prometheus</code>等组件一起实现，暂且不表，后续介绍完了<code>prometheus</code>之后再慢慢讲。</p>
+<h4 id="2-2、算法细节（来自社区文档）"><a href="#2-2、算法细节（来自社区文档）" class="headerlink" title="2.2、算法细节（来自社区文档）"></a>2.2、算法细节（来自社区文档）</h4><p>从最基本的角度来看，pod 水平自动缩放控制器跟据当前指标和期望指标来计算缩放比例。其中当前指标就是通过2.1节中的接口来获取，期望指标则是hpa资源中设置的值。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">期望副本数 = <span class="built_in">ceil</span>[当前副本数 * ( 当前指标 / 期望指标 )]</span><br></pre></td></tr></table></figure>
+
+<p>例如，当前指标为<code>200m</code>，目标设定值为<code>100m</code>,那么由于<code>200.0 / 100.0 == 2.0</code>， 副本数量将会翻倍。 如果当前指标为<code>50m</code>，副本数量将会减半，因为<code>50.0 / 100.0 == 0.5</code>。 如果计算出的缩放比例接近1.0（跟据<code>--horizontal-pod-autoscaler-tolerance</code> 参数全局配置的容忍值，默认为0.1）， 将会放弃本次缩放。</p>
+<p>如果 HorizontalPodAutoscaler 指定的是<code>targetAverageValue</code> 或 <code>targetAverageUtilization</code>， 那么将会把指定pod的平均指标做为<code>currentMetricValue</code>。 然而，在检查容忍度和决定最终缩放值前，我们仍然会把那些无法获取指标的pod统计进去。</p>
+<p>所有被标记了删除时间戳(Pod正在关闭过程中)的 pod 和 失败的 pod 都会被忽略。</p>
+<p>如果某个 pod 缺失指标信息，它将会被搁置，只在最终确定缩值时再考虑。</p>
+<p>当使用 CPU 指标来缩放时，任何还未就绪（例如还在初始化）状态的 pod <em>或</em> 最近的指标为就绪状态前的 pod， 也会被搁置</p>
+<p>由于受技术限制，pod 水平缩放控制器无法准确的知道 pod 什么时候就绪， 也就无法决定是否暂时搁置该 pod。 <code>--horizontal-pod-autoscaler-initial-readiness-delay</code> 参数（默认为30s），用于设置 pod 准备时间， 在此时间内的 pod 统统被认为未就绪。 <code>--horizontal-pod-autoscaler-cpu-initialization-period</code>参数（默认为5分钟），用于设置 pod 的初始化时间， 在此时间内的 pod，CPU 资源指标将不会被采纳。</p>
+<p>在排除掉被搁置的 pod 后，缩放比例就会跟据<code>currentMetricValue / desiredMetricValue</code>计算出来。</p>
+<p>如果有任何 pod 的指标缺失，我们会更保守地重新计算平均值， 在需要缩小时假设这些 pod 消耗了目标值的 100%， 在需要放大时假设这些 pod 消耗了0%目标值。 这可以在一定程度上抑制伸缩的幅度。</p>
+<p>此外，如果存在任何尚未就绪的pod，我们可以在不考虑遗漏指标或尚未就绪的pods的情况下进行伸缩， 我们保守地假设尚未就绪的pods消耗了试题指标的0%，从而进一步降低了伸缩的幅度。</p>
+<p>在缩放方向（缩小或放大）确定后，我们会把未就绪的 pod 和缺少指标的 pod 考虑进来再次计算使用率。 如果新的比率与缩放方向相反，或者在容忍范围内，则跳过缩放。 否则，我们使用新的缩放比例。</p>
+<p>注意，平均利用率的<em>原始</em>值会通过 HorizontalPodAutoscaler 的状态体现（ 即使使用了新的使用率，也不考虑未就绪 pod 和 缺少指标的 pod)。</p>
+<p>如果创建 HorizontalPodAutoscaler 时指定了多个指标， 那么会按照每个指标分别计算缩放副本数，取最大的进行缩放。 如果任何一个指标无法顺利的计算出缩放副本数（比如，通过 API 获取指标时出错）， 那么本次缩放会被跳过。</p>
+<p>最后，在 HPA 控制器执行缩放操作之前，会记录缩放建议信息（scale recommendation）。 控制器会在操作时间窗口中考虑所有的建议信息，并从中选择得分最高的建议。 这个值可通过 kube-controller-manager 服务的启动参数 <code>--horizontal-pod-autoscaler-downscale-stabilization</code> 进行配置， 默认值为 5min。 这个配置可以让系统更为平滑地进行缩容操作，从而消除短时间内指标值快速波动产生的影响。</p>
+<h3 id="3、代码解析"><a href="#3、代码解析" class="headerlink" title="3、代码解析"></a>3、代码解析</h3><h4 id="3-1、重要的数据结构"><a href="#3-1、重要的数据结构" class="headerlink" title="3.1、重要的数据结构"></a>3.1、重要的数据结构</h4><p>在进入代码之前，我们需要先说明一下与<code>Pod Autoscaler</code>相关的几个重要的<code>k8s</code>资源，这些资源是弹性伸缩实现的基石。</p>
+<h5 id="3-1-1、HorizontalPodAutoscaler（v2beta1）"><a href="#3-1-1、HorizontalPodAutoscaler（v2beta1）" class="headerlink" title="3.1.1、HorizontalPodAutoscaler（v2beta1）"></a>3.1.1、<code>HorizontalPodAutoscaler</code>（v2beta1）</h5><p>在最早期的<code>v1</code>版本的<code>HorizontalPodAutoscaler</code>中，只能指定<code>targetCPUUtilizationPercentage</code>，也就是说只能通过<code>pod</code>的<code>cpu</code>使用率来做弹性伸缩，功能比较局限。后面的<code>v2beta1</code>将这些资源做了拓展，已经不局限于<code>cpu</code>了。我们先举一个<code>v2beta1</code>的样例：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">kind:</span> <span class="string">HorizontalPodAutoscaler</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">autoscaling/v2beta2</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">fff</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">default</span></span><br><span class="line">  <span class="attr">selfLink:</span> <span class="string">"/apis/autoscaling/v2beta2/namespaces/default/horizontalpodautoscalers/fff"</span></span><br><span class="line">  <span class="attr">uid:</span> <span class="string">698d7d88-82f7-4b2d-ad1a-467e07a45edb</span></span><br><span class="line">  <span class="attr">resourceVersion:</span> <span class="string">'44279715'</span></span><br><span class="line">  <span class="attr">creationTimestamp:</span> <span class="string">'2020-05-14T06:51:45Z'</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">scaleTargetRef:</span>  <span class="comment">## 指定这个hpa策略作用于哪个资源上，其namespace跟当前hpa的namespace一致</span></span><br><span class="line">    <span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">fffff</span></span><br><span class="line">    <span class="attr">apiVersion:</span> <span class="string">apps/v1beta2</span></span><br><span class="line">  <span class="attr">minReplicas:</span> <span class="number">1</span>   <span class="comment">## 最小实例个数</span></span><br><span class="line">  <span class="attr">maxReplicas:</span> <span class="number">10</span>  <span class="comment">## 最大实例个数</span></span><br><span class="line">  <span class="attr">metrics:</span>   <span class="comment">## 从v2beta1开始targetCPUUtilizationPercentage已经改成了metrics，可以指定更多维度的指标</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">type:</span> <span class="string">Resource</span>   <span class="comment">## metric类型，有Resource、Pods、Object、External四种，这里的Resource是根据资源使用情况</span></span><br><span class="line">    <span class="attr">resource:</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">memory</span></span><br><span class="line">      <span class="attr">target:</span></span><br><span class="line">        <span class="attr">type:</span> <span class="string">Utilization</span>   <span class="comment">## target类型，表示资源的平均使用率，还有Value（使用量）、AverageValue（平均使用量）</span></span><br><span class="line">        <span class="attr">averageUtilization:</span> <span class="number">70</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">type:</span> <span class="string">Resource</span></span><br><span class="line">    <span class="attr">resource:</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">cpu</span></span><br><span class="line">      <span class="attr">target:</span></span><br><span class="line">        <span class="attr">type:</span> <span class="string">Utilization</span></span><br><span class="line">        <span class="attr">averageUtilization:</span> <span class="number">60</span></span><br><span class="line"><span class="attr">status:</span></span><br><span class="line">  <span class="attr">lastScaleTime:</span> <span class="string">'2020-05-14T06:57:01Z'</span>  <span class="comment">## 上次伸缩的时间，冷却时间就是根据这个做的判断</span></span><br><span class="line">  <span class="attr">currentReplicas:</span> <span class="number">1</span></span><br><span class="line">  <span class="attr">desiredReplicas:</span> <span class="number">1</span></span><br><span class="line">  <span class="attr">currentMetrics:</span> <span class="comment">## 当前获取的指标结果</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">type:</span> <span class="string">Resource</span></span><br><span class="line">    <span class="attr">resource:</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">memory</span></span><br><span class="line">      <span class="attr">current:</span></span><br><span class="line">        <span class="attr">averageValue:</span> <span class="string">'1433600'</span></span><br><span class="line">        <span class="attr">averageUtilization:</span> <span class="number">1</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">type:</span> <span class="string">Resource</span></span><br><span class="line">    <span class="attr">resource:</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">cpu</span></span><br><span class="line">      <span class="attr">current:</span></span><br><span class="line">        <span class="attr">averageValue:</span> <span class="string">'0'</span></span><br><span class="line">        <span class="attr">averageUtilization:</span> <span class="number">0</span></span><br><span class="line">  <span class="attr">conditions:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">type:</span> <span class="string">AbleToScale</span>  <span class="comment">## 表明 HPA 是否可以获取和更新伸缩信息，以及是否存在阻止伸缩的各种回退条件</span></span><br><span class="line">    <span class="attr">status:</span> <span class="string">'True'</span></span><br><span class="line">    <span class="attr">lastTransitionTime:</span> <span class="string">'2020-05-14T06:52:00Z'</span></span><br><span class="line">    <span class="attr">reason:</span> <span class="string">ReadyForNewScale</span></span><br><span class="line">    <span class="attr">message:</span> <span class="string">recommended</span> <span class="string">size</span> <span class="string">matches</span> <span class="string">current</span> <span class="string">size</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">type:</span> <span class="string">ScalingActive</span>  <span class="comment">## 表明HPA是否被启用（即目标的副本数量不为零） 以及是否能够完成伸缩计算。 当这一状态为 False 时，通常表明获取度量指标存在问题。</span></span><br><span class="line">    <span class="attr">status:</span> <span class="string">'True'</span></span><br><span class="line">    <span class="attr">lastTransitionTime:</span> <span class="string">'2020-05-25T11:27:20Z'</span></span><br><span class="line">    <span class="attr">reason:</span> <span class="string">ValidMetricFound</span></span><br><span class="line">    <span class="attr">message:</span> <span class="string">the</span> <span class="string">HPA</span> <span class="string">was</span> <span class="string">able</span> <span class="string">to</span> <span class="string">successfully</span> <span class="string">calculate</span> <span class="string">a</span> <span class="string">replica</span> <span class="string">count</span> <span class="string">from</span> <span class="string">memory</span></span><br><span class="line">      <span class="string">resource</span> <span class="string">utilization</span> <span class="string">(percentage</span> <span class="string">of</span> <span class="string">request)</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">type:</span> <span class="string">ScalingLimited</span>  <span class="comment">## 表明所需伸缩的值被 HorizontalPodAutoscaler 所定义的最大或者最小值所限制（即已经达到最大或者最小伸缩值）</span></span><br><span class="line">    <span class="attr">status:</span> <span class="string">'False'</span></span><br><span class="line">    <span class="attr">lastTransitionTime:</span> <span class="string">'2020-05-14T06:52:00Z'</span></span><br><span class="line">    <span class="attr">reason:</span> <span class="string">DesiredWithinRange</span></span><br><span class="line">    <span class="attr">message:</span> <span class="string">the</span> <span class="string">desired</span> <span class="string">count</span> <span class="string">is</span> <span class="string">within</span> <span class="string">the</span> <span class="string">acceptable</span> <span class="string">range</span></span><br></pre></td></tr></table></figure>
+
+<p>在<code>HorizontalPodAutoscaler</code>中，很关键的一个字段就是<code>spec.metrics</code>，用来指定自动伸缩所根据的指标，分别有4种类型：</p>
+<ul>
+<li><p><code>Resource</code>：资源使用率，可以是<code>pod</code>的<code>cpu</code>、<code>memory</code>，对应的指标可以是使用率、使用量、平均使用量，前面的样例中使用的就是这种类型</p>
+</li>
+<li><p><code>Pods</code>：表示指定的指标在不同Pod之间进行平均，并通过与一个目标值比对来确定副本的数量。 它们的工作方式与资源度量指标非常相像，差别是它们仅支持<code>target</code> 类型为<code>AverageValue</code>。样例如下：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">type:</span> <span class="string">Pods</span></span><br><span class="line"><span class="attr">pods:</span></span><br><span class="line">  <span class="attr">metric:</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">packets-per-second</span></span><br><span class="line">  <span class="attr">target:</span></span><br><span class="line">    <span class="attr">type:</span> <span class="string">AverageValue</span></span><br><span class="line">    <span class="attr">averageValue:</span> <span class="string">1k</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p><code>Object</code>：<code>k8s</code>中某一个可以描述资源指标的对象，例如有<code>hits-per-second</code>指标的<code>Ingress</code>对象，表示<code>requests-per-second</code>的度量指标样例如下。需要注意的是，这个资源对象需要与其作用的<code>pod</code>在相同<code>namespace</code>中。</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">type:</span> <span class="string">Object</span></span><br><span class="line"><span class="attr">object:</span></span><br><span class="line">  <span class="attr">metric:</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">requests-per-second</span></span><br><span class="line">  <span class="attr">describedObject:</span></span><br><span class="line">    <span class="attr">apiVersion:</span> <span class="string">networking.k8s.io/v1beta1</span></span><br><span class="line">    <span class="attr">kind:</span> <span class="string">Ingress</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">main-route</span></span><br><span class="line">  <span class="attr">target:</span></span><br><span class="line">    <span class="attr">type:</span> <span class="string">Value</span></span><br><span class="line">    <span class="attr">value:</span> <span class="string">2k</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p><code>External</code>：使用外部的度量指标，这些指标依赖于外部的监控系统，这种方式不太推荐，更建议使用<code>custom metric</code>的方式。</p>
+</li>
+</ul>
+<p>由于<code>spec.metrics</code>是一个slice，因此可以同时指定多个指标类型，<code>HorizontalPodAutoscaler</code> 会计算每一个指标所提议的副本数量，然后最终选择一个最高值。</p>
+<h4 id="3-2、代码目录"><a href="#3-2、代码目录" class="headerlink" title="3.2、代码目录"></a>3.2、代码目录</h4><p>跟k8s中其他官方的controller一样，<code>Pod Autoscaler</code>控制器的代码主要都位于k8s中，主要代码逻辑在<code>horizontal.go</code>中，其他文件中的代码见下面的说明。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> pkg/controller/podautoscaler/</span></span><br><span class="line">├── config   # HPAController的启动参数相关</span><br><span class="line">│   ├── BUILD</span><br><span class="line">│   ├── doc.go</span><br><span class="line">│   ├── OWNERS</span><br><span class="line">│   ├── types.go</span><br><span class="line">│   ├── v1alpha1</span><br><span class="line">│   │   ├── BUILD</span><br><span class="line">│   │   ├── conversion.go</span><br><span class="line">│   │   ├── defaults.go</span><br><span class="line">│   │   ├── doc.go</span><br><span class="line">│   │   ├── register.go</span><br><span class="line">│   │   ├── zz_generated.conversion.go</span><br><span class="line">│   │   └── zz_generated.deepcopy.go</span><br><span class="line">│   └── zz_generated.deepcopy.go</span><br><span class="line">├── doc.go</span><br><span class="line">├── horizontal.go   # 主代码逻辑</span><br><span class="line">├── horizontal_test.go</span><br><span class="line">├── legacy_horizontal_test.go</span><br><span class="line">├── legacy_replica_calculator_test.go</span><br><span class="line">├── metrics</span><br><span class="line">│   ├── BUILD</span><br><span class="line">│   ├── interfaces.go   # 获取metric数值的接口</span><br><span class="line">│   ├── legacy_metrics_client.go   # 调用heapster获取metric的实现</span><br><span class="line">│   ├── legacy_metrics_client_test.go</span><br><span class="line">│   ├── rest_metrics_client.go   # 调用metric-server获取metric的实现</span><br><span class="line">│   ├── rest_metrics_client_test.go</span><br><span class="line">│   ├── utilization.go   # 计算当前使用率的公共函数</span><br><span class="line">│   └── utilization_test.go</span><br><span class="line">├── OWNERS</span><br><span class="line">├── rate_limiters.go   # HPAController限流器</span><br><span class="line">├── replica_calculator.go   # 根据当前使用率计算pod期望个数的函数实现</span><br><span class="line">└── replica_calculator_test.go</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-3、代码逻辑"><a href="#3-3、代码逻辑" class="headerlink" title="3.3、代码逻辑"></a>3.3、代码逻辑</h4><p>为了方便理解<code>HorizontalController</code>本身的逻辑，这里不去细究<code>kube-controller-manager</code>本身的框架，也不去细究<code>k8s</code>中<code>list-watch</code>机制中的<code>informer</code>相关的具体细节，遇到时也仅解析其功能和用法。</p>
+<h5 id="3-3-1、创建HorizontalController"><a href="#3-3-1、创建HorizontalController" class="headerlink" title="3.3.1、创建HorizontalController"></a>3.3.1、创建<code>HorizontalController</code></h5><p>创建<code>HorizontalController</code>时一个十分关键的参数是<code>resyncPeriod</code>，即启动参数<code>horizontal-pod-autoscaler-sync-period</code>，<code>controller</code>中并不是通过<code>Ticker</code>的方式来定时去做检查，而是在<code>informer</code>中定时把所有资源发送到<code>controller</code>的处理队列中，这种方式的好处是不需要给每个<code>hpa</code>资源都创建一个<code>Ticker</code>。这个功能主要是<code>informer</code>自己去实现的，对这部分感兴趣的话可以去瞅瞅<code>staging/src/k8s.io/client-go/tools/cache</code>里面的代码，非常值得研究。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// pkg/controller/podautoscaler/horizontal.go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewHorizontalController</span><span class="params">(</span></span></span><br><span class="line"><span class="function"><span class="params">	evtNamespacer v1core.EventsGetter,</span></span></span><br><span class="line"><span class="function"><span class="params">	scaleNamespacer scaleclient.ScalesGetter,</span></span></span><br><span class="line"><span class="function"><span class="params">	hpaNamespacer autoscalingclient.HorizontalPodAutoscalersGetter,</span></span></span><br><span class="line"><span class="function"><span class="params">	mapper apimeta.RESTMapper,</span></span></span><br><span class="line"><span class="function"><span class="params">	metricsClient metricsclient.MetricsClient,</span></span></span><br><span class="line"><span class="function"><span class="params">	hpaInformer autoscalinginformers.HorizontalPodAutoscalerInformer,</span></span></span><br><span class="line"><span class="function"><span class="params">	podInformer coreinformers.PodInformer,</span></span></span><br><span class="line"><span class="function"><span class="params">	resyncPeriod time.Duration,</span></span></span><br><span class="line"><span class="function"><span class="params">	downscaleStabilisationWindow time.Duration,</span></span></span><br><span class="line"><span class="function"><span class="params">	tolerance <span class="keyword">float64</span>,</span></span></span><br><span class="line"><span class="function"><span class="params">	cpuInitializationPeriod,</span></span></span><br><span class="line"><span class="function"><span class="params">	delayOfInitialReadinessStatus time.Duration,</span></span></span><br><span class="line"><span class="function"><span class="params">)</span> *<span class="title">HorizontalController</span></span> &#123;</span><br><span class="line">    <span class="comment">// 其他代码略</span></span><br><span class="line"></span><br><span class="line">	hpaInformer.Informer().AddEventHandlerWithResyncPeriod(</span><br><span class="line">		cache.ResourceEventHandlerFuncs&#123;</span><br><span class="line">			AddFunc:    hpaController.enqueueHPA,</span><br><span class="line">			UpdateFunc: hpaController.updateHPA,</span><br><span class="line">			DeleteFunc: hpaController.deleteHPA,</span><br><span class="line">		&#125;,</span><br><span class="line">		resyncPeriod, <span class="comment">// 设置informer的resync时间，即每隔一段时间informer会将缓存中的所有对象的key都放入队列中</span></span><br><span class="line">	)</span><br><span class="line">    <span class="comment">// 其他代码略</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> hpaController</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h5 id="3-3-2、运行controller"><a href="#3-3-2、运行controller" class="headerlink" title="3.3.2、运行controller"></a>3.3.2、运行<code>controller</code></h5><p>相比于创建<code>controller</code>时的各种涉及到<code>informer</code>参数的设置，运行<code>controller</code>的逻辑明显清晰很多，入口就是其<code>Run</code>函数，其中会起一个携程来运行实际的处理逻辑。在这个协程中，会不断从informer的队列中取出需要处理的HPA对象的key，然后使用这个key去缓存中获取对应的HPA对象的完整对象。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// pkg/controller/podautoscaler/horizontal.go</span></span><br><span class="line"><span class="comment">// Run begins watching and syncing.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *HorizontalController)</span> <span class="title">Run</span><span class="params">(stopCh &lt;-<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> utilruntime.HandleCrash()</span><br><span class="line">	<span class="keyword">defer</span> a.queue.ShutDown()</span><br><span class="line">	klog.Infof(<span class="string">"Starting HPA controller"</span>)</span><br><span class="line">	<span class="keyword">defer</span> klog.Infof(<span class="string">"Shutting down HPA controller"</span>)</span><br><span class="line">	<span class="keyword">if</span> !controller.WaitForCacheSync(<span class="string">"HPA"</span>, stopCh, a.hpaListerSynced, a.podListerSynced) &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">    <span class="comment">// 起一个协程来运行worker</span></span><br><span class="line">	<span class="keyword">go</span> wait.Until(a.worker, time.Second, stopCh)</span><br><span class="line">	&lt;-stopCh</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *HorizontalController)</span> <span class="title">worker</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 循环调用processNextWorkItem直到其返回false时停止</span></span><br><span class="line">	<span class="keyword">for</span> a.processNextWorkItem() &#123;</span><br><span class="line">	&#125;</span><br><span class="line">	klog.Infof(<span class="string">"horizontal pod autoscaler controller worker shutting down"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *HorizontalController)</span> <span class="title">processNextWorkItem</span><span class="params">()</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">    <span class="comment">// 从队列中取出待处理的HPA对象的key</span></span><br><span class="line">	key, quit := a.queue.Get()</span><br><span class="line">	<span class="keyword">if</span> quit &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> a.queue.Done(key)</span><br><span class="line">    <span class="comment">// 关键逻辑：处理这个HPA对象</span></span><br><span class="line">	deleted, err := a.reconcileKey(key.(<span class="keyword">string</span>))</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		utilruntime.HandleError(err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 处理出现问题时重新入队列</span></span><br><span class="line">	<span class="keyword">if</span> !deleted &#123;</span><br><span class="line">		a.queue.AddRateLimited(key)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *HorizontalController)</span> <span class="title">reconcileKey</span><span class="params">(key <span class="keyword">string</span>)</span> <span class="params">(deleted <span class="keyword">bool</span>, err error)</span></span> &#123;</span><br><span class="line">	namespace, name, err := cache.SplitMetaNamespaceKey(key)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">true</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">    <span class="comment">// 根据hap的name和namespace从缓存中获取hpa的完整对象</span></span><br><span class="line">	hpa, err := a.hpaLister.HorizontalPodAutoscalers(namespace).Get(name)</span><br><span class="line">	<span class="keyword">if</span> errors.IsNotFound(err) &#123;</span><br><span class="line">		klog.Infof(<span class="string">"Horizontal Pod Autoscaler %s has been deleted in %s"</span>, name, namespace)</span><br><span class="line">		<span class="built_in">delete</span>(a.recommendations, key)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">true</span>, <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">    <span class="comment">// 去处理这个HPA对象</span></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">false</span>, a.reconcileAutoscaler(hpa, key)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在处理HPA对象时，主要分为3步：</p>
+<ol>
+<li>获取目标<code>deploy</code>或者<code>rs</code>的<code>scale</code>数据，包含<code>deploy</code>或者<code>rs</code>中<code>spec.replicas</code>指定的实例个数</li>
+<li>根据当前的情况计算是否需要扩缩容以及期望的实例个数</li>
+<li>需要<code>scale</code>的情况则调用接口对改资源进行弹性伸缩，否则保持不变</li>
+</ol>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// pkg/controller/podautoscaler/horizontal.go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *HorizontalController)</span> <span class="title">reconcileAutoscaler</span><span class="params">(hpav1Shared *autoscalingv1.HorizontalPodAutoscaler, key <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="comment">// make a copy so that we never mutate the shared informer cache (conversion can mutate the object)</span></span><br><span class="line">	hpav1 := hpav1Shared.DeepCopy()</span><br><span class="line">	<span class="comment">// then, convert to autoscaling/v2, which makes our lives easier when calculating metrics</span></span><br><span class="line">	hpaRaw, err := unsafeConvertToVersionVia(hpav1, autoscalingv2.SchemeGroupVersion)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		a.eventRecorder.Event(hpav1, v1.EventTypeWarning, <span class="string">"FailedConvertHPA"</span>, err.Error())</span><br><span class="line">		<span class="keyword">return</span> fmt.Errorf(<span class="string">"failed to convert the given HPA to %s: %v"</span>, autoscalingv2.SchemeGroupVersion.String(), err)</span><br><span class="line">	&#125;</span><br><span class="line">    <span class="comment">// 转换成v2版本的hpa</span></span><br><span class="line">	hpa := hpaRaw.(*autoscalingv2.HorizontalPodAutoscaler)</span><br><span class="line">	hpaStatusOriginal := hpa.Status.DeepCopy()</span><br><span class="line"></span><br><span class="line">	reference := fmt.Sprintf(<span class="string">"%s/%s/%s"</span>, hpa.Spec.ScaleTargetRef.Kind, hpa.Namespace, hpa.Spec.ScaleTargetRef.Name)</span><br><span class="line"></span><br><span class="line">	targetGV, err := schema.ParseGroupVersion(hpa.Spec.ScaleTargetRef.APIVersion)</span><br><span class="line">    <span class="comment">// 错误处理略</span></span><br><span class="line">	targetGK := schema.GroupKind&#123;</span><br><span class="line">		Group: targetGV.Group,</span><br><span class="line">		Kind:  hpa.Spec.ScaleTargetRef.Kind,</span><br><span class="line">	&#125;</span><br><span class="line">	mappings, err := a.mapper.RESTMappings(targetGK)</span><br><span class="line">	<span class="comment">// 错误处理略</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 1、获取目标deploy或者rs的scale数据，包含deploy或者rs中spec.replicas指定的实例个数</span></span><br><span class="line">	scale, targetGR, err := a.scaleForResourceMappings(hpa.Namespace, hpa.Spec.ScaleTargetRef.Name, mappings)</span><br><span class="line">	<span class="comment">// 错误处理略</span></span><br><span class="line">	currentReplicas := scale.Spec.Replicas</span><br><span class="line">	a.recordInitialRecommendation(currentReplicas, key)</span><br><span class="line">	<span class="keyword">var</span> (</span><br><span class="line">		metricStatuses        []autoscalingv2.MetricStatus</span><br><span class="line">		metricDesiredReplicas <span class="keyword">int32</span></span><br><span class="line">		metricName            <span class="keyword">string</span></span><br><span class="line">	)</span><br><span class="line">	desiredReplicas := <span class="keyword">int32</span>(<span class="number">0</span>)  <span class="comment">// 这里最终就是为了根据当前的资源使用情况计算出这个期望的实例个数</span></span><br><span class="line">	rescaleReason := <span class="string">""</span></span><br><span class="line"></span><br><span class="line">	rescale := <span class="literal">true</span>  <span class="comment">// 是否需要伸缩</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 2、根据当前的情况计算是否需要扩缩容以及期望的实例个数</span></span><br><span class="line">	<span class="keyword">if</span> scale.Spec.Replicas == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="comment">// 如果当前这个deploy或者rs的spec.replicas是0则不做处理</span></span><br><span class="line">		desiredReplicas = <span class="number">0</span></span><br><span class="line">		rescale = <span class="literal">false</span></span><br><span class="line">		setCondition(hpa, autoscalingv2.ScalingActive, v1.ConditionFalse, <span class="string">"ScalingDisabled"</span>, <span class="string">"scaling is disabled since the replica count of the target is zero"</span>)</span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> currentReplicas &gt; hpa.Spec.MaxReplicas &#123;</span><br><span class="line">        <span class="comment">// 如果当前设置的replicas超过了上限，则设置为上限的值</span></span><br><span class="line">		rescaleReason = <span class="string">"Current number of replicas above Spec.MaxReplicas"</span></span><br><span class="line">		desiredReplicas = hpa.Spec.MaxReplicas</span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> hpa.Spec.MinReplicas != <span class="literal">nil</span> &amp;&amp; currentReplicas &lt; *hpa.Spec.MinReplicas &#123;</span><br><span class="line">        <span class="comment">// 如果当前设置的replicas超过了下限，则设置为下限的值</span></span><br><span class="line">		rescaleReason = <span class="string">"Current number of replicas below Spec.MinReplicas"</span></span><br><span class="line">		desiredReplicas = *hpa.Spec.MinReplicas</span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> currentReplicas == <span class="number">0</span> &#123;</span><br><span class="line">        <span class="comment">// 没看懂这个跟第一个if有啥区别</span></span><br><span class="line">		rescaleReason = <span class="string">"Current number of replicas must be greater than 0"</span></span><br><span class="line">		desiredReplicas = <span class="number">1</span></span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// 关键的分支来了，根据当前的指标计算期望实例个数的分支</span></span><br><span class="line">		<span class="keyword">var</span> metricTimestamp time.Time</span><br><span class="line">        <span class="comment">// 关键逻辑：根据当前的指标计算期望实例个数的分支</span></span><br><span class="line">		metricDesiredReplicas, metricName, metricStatuses, metricTimestamp, err = a.computeReplicasForMetrics(hpa, scale, hpa.Spec.Metrics)</span><br><span class="line">		<span class="comment">// 错误处理和event略</span></span><br><span class="line">		rescaleMetric := <span class="string">""</span></span><br><span class="line">		<span class="keyword">if</span> metricDesiredReplicas &gt; desiredReplicas &#123;</span><br><span class="line">			desiredReplicas = metricDesiredReplicas</span><br><span class="line">			rescaleMetric = metricName</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 中间略</span></span><br><span class="line">		desiredReplicas = a.normalizeDesiredReplicas(hpa, key, currentReplicas, desiredReplicas)</span><br><span class="line">		rescale = desiredReplicas != currentReplicas</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 3、需要scale的情况则调用接口对改资源进行弹性伸缩，否则保持不变</span></span><br><span class="line">	<span class="keyword">if</span> rescale &#123;</span><br><span class="line">		scale.Spec.Replicas = desiredReplicas</span><br><span class="line">		_, err = a.scaleNamespacer.Scales(hpa.Namespace).Update(targetGR, scale)</span><br><span class="line">		<span class="comment">// 错误处理和日志略</span></span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		klog.V(<span class="number">4</span>).Infof(<span class="string">"decided not to scale %s to %v (last scale time was %s)"</span>, reference, desiredReplicas, hpa.Status.LastScaleTime)</span><br><span class="line">		desiredReplicas = currentReplicas</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	a.setStatus(hpa, currentReplicas, desiredReplicas, metricStatuses, rescale)</span><br><span class="line">	<span class="keyword">return</span> a.updateStatusIfNeeded(hpaStatusOriginal, hpa)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>前面的逻辑中，最重要的一步就是根据当前的资源使用情况来计算期望的实例个数，也就是<code>computeReplicasForMetrics</code>函数。在这个函数中，主要就是遍历所有的<code>metric</code>策略（3.1.1节中有提到不同类型），并计算各个策略下的期望实例个数，最终取最大的那个。这段逻辑最终进入到计算单个策略的函数<code>computeReplicasForMetric</code>中。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// pkg/controller/podautoscaler/horizontal.go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *HorizontalController)</span> <span class="title">computeReplicasForMetrics</span><span class="params">(hpa *autoscalingv2.HorizontalPodAutoscaler, scale *autoscalingv1.Scale,</span></span></span><br><span class="line"><span class="function"><span class="params">	metricSpecs []autoscalingv2.MetricSpec)</span> <span class="params">(replicas <span class="keyword">int32</span>, metric <span class="keyword">string</span>, statuses []autoscalingv2.MetricStatus, timestamp time.Time, err error)</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	specReplicas := scale.Spec.Replicas</span><br><span class="line">	statusReplicas := scale.Status.Replicas</span><br><span class="line">	statuses = <span class="built_in">make</span>([]autoscalingv2.MetricStatus, <span class="built_in">len</span>(metricSpecs))</span><br><span class="line">    <span class="comment">// 异常处理略</span></span><br><span class="line">	selector, err := labels.Parse(scale.Status.Selector)</span><br><span class="line">    <span class="comment">// 异常处理略</span></span><br><span class="line">	invalidMetricsCount := <span class="number">0</span></span><br><span class="line">	<span class="keyword">var</span> invalidMetricError error</span><br><span class="line">    <span class="comment">// 计算每一个metric配置的期望，并取其中计算结果最大的值（3.1.1节中已经说明了多中类型的metric）</span></span><br><span class="line">	<span class="keyword">for</span> i, metricSpec := <span class="keyword">range</span> metricSpecs &#123;</span><br><span class="line">		replicaCountProposal, metricNameProposal, timestampProposal, err := a.computeReplicasForMetric(hpa, metricSpec, specReplicas, statusReplicas, selector, &amp;statuses[i])</span><br><span class="line">        <span class="comment">// 异常处理略</span></span><br><span class="line">        <span class="comment">// 取最大的那个期望值</span></span><br><span class="line">		<span class="keyword">if</span> err == <span class="literal">nil</span> &amp;&amp; (replicas == <span class="number">0</span> || replicaCountProposal &gt; replicas) &#123;</span><br><span class="line">			timestamp = timestampProposal</span><br><span class="line">			replicas = replicaCountProposal</span><br><span class="line">			metric = metricNameProposal</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 异常处理略</span></span><br><span class="line">	<span class="keyword">return</span> replicas, metric, statuses, timestamp, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>对于每一个策略而言，需要根据其类型做不同的处理，<code>computeReplicasForMetric</code>中主要就是一个<code>case</code>语句，由于有4中类型，其中<code>Resource</code>较为常用，因此后面就只对这种类型进行代码分析。<code>Resource</code>类型的计算是由<code>computeStatusForResourceMetric</code>来处理的。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// pkg/controller/podautoscaler/horizontal.go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *HorizontalController)</span> <span class="title">computeReplicasForMetric</span><span class="params">(hpa *autoscalingv2.HorizontalPodAutoscaler, spec autoscalingv2.MetricSpec,</span></span></span><br><span class="line"><span class="function"><span class="params">	specReplicas, statusReplicas <span class="keyword">int32</span>, selector labels.Selector, status *autoscalingv2.MetricStatus)</span> <span class="params">(replicaCountProposal <span class="keyword">int32</span>, metricNameProposal <span class="keyword">string</span>,</span></span></span><br><span class="line"><span class="function"><span class="params">	timestampProposal time.Time, err error)</span></span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 针对不同类型的metric使用不同方法的计算</span></span><br><span class="line">	<span class="keyword">switch</span> spec.Type &#123;</span><br><span class="line">	<span class="keyword">case</span> autoscalingv2.ObjectMetricSourceType:</span><br><span class="line">		metricSelector, err := metav1.LabelSelectorAsSelector(spec.Object.Metric.Selector)</span><br><span class="line">		<span class="comment">// 异常处理略</span></span><br><span class="line">		replicaCountProposal, timestampProposal, metricNameProposal, err = a.computeStatusForObjectMetric(specReplicas, statusReplicas, spec, hpa, selector, status, metricSelector)</span><br><span class="line">		<span class="comment">// 异常处理略</span></span><br><span class="line">	<span class="keyword">case</span> autoscalingv2.PodsMetricSourceType:</span><br><span class="line">		metricSelector, err := metav1.LabelSelectorAsSelector(spec.Pods.Metric.Selector)</span><br><span class="line">		<span class="comment">// 异常处理略</span></span><br><span class="line">		replicaCountProposal, timestampProposal, metricNameProposal, err = a.computeStatusForPodsMetric(specReplicas, spec, hpa, selector, status, metricSelector)</span><br><span class="line">		<span class="comment">// 异常处理略</span></span><br><span class="line">	<span class="keyword">case</span> autoscalingv2.ResourceMetricSourceType:</span><br><span class="line">		replicaCountProposal, timestampProposal, metricNameProposal, err = a.computeStatusForResourceMetric(specReplicas, spec, hpa, selector, status)</span><br><span class="line">		<span class="comment">// 异常处理略</span></span><br><span class="line">	<span class="keyword">case</span> autoscalingv2.ExternalMetricSourceType:</span><br><span class="line">		replicaCountProposal, timestampProposal, metricNameProposal, err = a.computeStatusForExternalMetric(specReplicas, statusReplicas, spec, hpa, selector, status)</span><br><span class="line">		<span class="comment">// 异常处理略</span></span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">		errMsg := fmt.Sprintf(<span class="string">"unknown metric source type %q"</span>, <span class="keyword">string</span>(spec.Type))</span><br><span class="line">		<span class="comment">// 异常处理略</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> replicaCountProposal, metricNameProposal, timestampProposal, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在<code>computeStatusForResourceMetric</code>中，主要是针对<code>Resource</code>类型的策略进行处理，在3.1.1章节中已经说明<code>Resource</code>类型的策略对应的指标可以是：</p>
+<ul>
+<li>平均使用率<code>AverageUtilization</code></li>
+<li>使用量<code>Value</code></li>
+<li>平均使用量<code>AverageValue</code></li>
+</ul>
+<p>但是在<code>computeStatusForResourceMetric</code>函数中，似乎并不支持使用量<code>Value</code>这种类型。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// pkg/controller/podautoscaler/horizontal.go</span></span><br><span class="line"><span class="comment">// 针对3中不同的指标类型分别进行计算</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *HorizontalController)</span> <span class="title">computeStatusForResourceMetric</span><span class="params">(currentReplicas <span class="keyword">int32</span>, metricSpec autoscalingv2.MetricSpec, hpa *autoscalingv2.HorizontalPodAutoscaler, selector labels.Selector, status *autoscalingv2.MetricStatus)</span> <span class="params">(<span class="keyword">int32</span>, time.Time, <span class="keyword">string</span>, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> metricSpec.Resource.Target.AverageValue != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="comment">// 平均使用量的计算方法</span></span><br><span class="line">		<span class="keyword">var</span> rawProposal <span class="keyword">int64</span></span><br><span class="line">		replicaCountProposal, rawProposal, timestampProposal, err := a.replicaCalc.GetRawResourceReplicas(currentReplicas, metricSpec.Resource.Target.AverageValue.MilliValue(), metricSpec.Resource.Name, hpa.Namespace, selector)</span><br><span class="line">		<span class="comment">// 异常处理略</span></span><br><span class="line">		metricNameProposal := fmt.Sprintf(<span class="string">"%s resource"</span>, metricSpec.Resource.Name)</span><br><span class="line">		*status = autoscalingv2.MetricStatus&#123;</span><br><span class="line">			Type: autoscalingv2.ResourceMetricSourceType,</span><br><span class="line">			Resource: &amp;autoscalingv2.ResourceMetricStatus&#123;</span><br><span class="line">				Name: metricSpec.Resource.Name,</span><br><span class="line">				Current: autoscalingv2.MetricValueStatus&#123;</span><br><span class="line">					AverageValue: resource.NewMilliQuantity(rawProposal, resource.DecimalSI),</span><br><span class="line">				&#125;,</span><br><span class="line">			&#125;,</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> replicaCountProposal, timestampProposal, metricNameProposal, <span class="literal">nil</span></span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// 平均使用率的计算方法</span></span><br><span class="line">		<span class="keyword">if</span> metricSpec.Resource.Target.AverageUtilization == <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="comment">// 这里可以看到似乎并不支持metricSpec.Resource.Target.Value？</span></span><br><span class="line">			errMsg := <span class="string">"invalid resource metric source: neither a utilization target nor a value target was set"</span></span><br><span class="line">			a.eventRecorder.Event(hpa, v1.EventTypeWarning, <span class="string">"FailedGetResourceMetric"</span>, errMsg)</span><br><span class="line">			setCondition(hpa, autoscalingv2.ScalingActive, v1.ConditionFalse, <span class="string">"FailedGetResourceMetric"</span>, <span class="string">"the HPA was unable to compute the replica count: %s"</span>, errMsg)</span><br><span class="line">			<span class="keyword">return</span> <span class="number">0</span>, time.Time&#123;&#125;, <span class="string">""</span>, fmt.Errorf(errMsg)</span><br><span class="line">		&#125;</span><br><span class="line">        <span class="comment">// </span></span><br><span class="line">		targetUtilization := *metricSpec.Resource.Target.AverageUtilization</span><br><span class="line">		<span class="keyword">var</span> percentageProposal <span class="keyword">int32</span></span><br><span class="line">		<span class="keyword">var</span> rawProposal <span class="keyword">int64</span></span><br><span class="line">        <span class="comment">// 关键逻辑：根据资源使用率来计算期望的实例个数</span></span><br><span class="line">		replicaCountProposal, percentageProposal, rawProposal, timestampProposal, err := a.replicaCalc.GetResourceReplicas(currentReplicas, targetUtilization, metricSpec.Resource.Name, hpa.Namespace, selector)</span><br><span class="line">		<span class="comment">// 异常处理略</span></span><br><span class="line">		metricNameProposal := fmt.Sprintf(<span class="string">"%s resource utilization (percentage of request)"</span>, metricSpec.Resource.Name)</span><br><span class="line">		*status = autoscalingv2.MetricStatus&#123;</span><br><span class="line">			Type: autoscalingv2.ResourceMetricSourceType,</span><br><span class="line">			Resource: &amp;autoscalingv2.ResourceMetricStatus&#123;</span><br><span class="line">				Name: metricSpec.Resource.Name,</span><br><span class="line">				Current: autoscalingv2.MetricValueStatus&#123;</span><br><span class="line">					AverageUtilization: &amp;percentageProposal,</span><br><span class="line">					AverageValue:       resource.NewMilliQuantity(rawProposal, resource.DecimalSI),</span><br><span class="line">				&#125;,</span><br><span class="line">			&#125;,</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> replicaCountProposal, timestampProposal, metricNameProposal, <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>由于篇幅有限，本文只说明一下平均使用率<code>AverageUtilization</code>这种情况。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// pkg/controller/podautoscaler/replica_calculator.go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *ReplicaCalculator)</span> <span class="title">GetResourceReplicas</span><span class="params">(currentReplicas <span class="keyword">int32</span>, targetUtilization <span class="keyword">int32</span>, resource v1.ResourceName, namespace <span class="keyword">string</span>, selector labels.Selector)</span> <span class="params">(replicaCount <span class="keyword">int32</span>, utilization <span class="keyword">int32</span>, rawUtilization <span class="keyword">int64</span>, timestamp time.Time, err error)</span></span> &#123;</span><br><span class="line">    <span class="comment">// 1、调用metric-server的接口获取deploy/rs下所有pod的metric</span></span><br><span class="line">	metrics, timestamp, err := c.metricsClient.GetResourceMetric(resource, namespace, selector)</span><br><span class="line">	<span class="comment">// 异常处理略</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 2、从缓存中获取deploy/rs下所有pod信息</span></span><br><span class="line">	podList, err := c.podLister.Pods(namespace).List(selector)</span><br><span class="line">	<span class="comment">// 异常处理略</span></span><br><span class="line"></span><br><span class="line">	itemsLen := <span class="built_in">len</span>(podList)</span><br><span class="line">	<span class="comment">// 异常处理略</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 3、根据pod信息统计Ready的pod个数、未就绪的ignoredPods、查不到metric数据的missingPods</span></span><br><span class="line">	readyPodCount, ignoredPods, missingPods := groupPods(podList, metrics, resource, c.cpuInitializationPeriod, c.delayOfInitialReadinessStatus)</span><br><span class="line">    <span class="comment">// 4、去掉未就绪的pod的metric（现在metrics里面只剩下ready的pod的指标）</span></span><br><span class="line">	removeMetricsForPods(metrics, ignoredPods)</span><br><span class="line">    <span class="comment">// 5、获取每个pod这个resource的request的总和</span></span><br><span class="line">	requests, err := calculatePodRequests(podList, resource)</span><br><span class="line">	<span class="comment">// 异常处理略</span></span><br><span class="line">    <span class="comment">// 6、根据metric和request的值计算当前资源使用率和期望使用率的比值、当前资源使用率、当前资源使用平均值</span></span><br><span class="line">	usageRatio, utilization, rawUtilization, err := metricsclient.GetResourceUtilizationRatio(metrics, requests, targetUtilization)</span><br><span class="line">	<span class="comment">// 异常处理略</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">//   如果当前计算出的结果是需要扩容，并有有查不到metric的pod，后面需要重新计算</span></span><br><span class="line">	rebalanceIgnored := <span class="built_in">len</span>(ignoredPods) &gt; <span class="number">0</span> &amp;&amp; usageRatio &gt; <span class="number">1.0</span></span><br><span class="line">	<span class="keyword">if</span> !rebalanceIgnored &amp;&amp; <span class="built_in">len</span>(missingPods) == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> math.Abs(<span class="number">1.0</span>-usageRatio) &lt;= c.tolerance &#123;</span><br><span class="line">			<span class="comment">// 当前资源使用率和期望使用率差距在容忍范围内时，不做修改</span></span><br><span class="line">            <span class="keyword">return</span> currentReplicas, utilization, rawUtilization, timestamp, <span class="literal">nil</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 没有查不到metric的pod，且确实需要扩容，则进行扩容</span></span><br><span class="line">		<span class="keyword">return</span> <span class="keyword">int32</span>(math.Ceil(usageRatio * <span class="keyword">float64</span>(readyPodCount))), utilization, rawUtilization, timestamp, <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(missingPods) &gt; <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> usageRatio &lt; <span class="number">1.0</span> &#123;</span><br><span class="line">			<span class="comment">// 需要缩容时，将查不到metric的pod当做资源使用了100%看待</span></span><br><span class="line">			<span class="keyword">for</span> podName := <span class="keyword">range</span> missingPods &#123;</span><br><span class="line">				metrics[podName] = metricsclient.PodMetric&#123;Value: requests[podName]&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125; <span class="keyword">else</span> <span class="keyword">if</span> usageRatio &gt; <span class="number">1.0</span> &#123;</span><br><span class="line">			<span class="comment">// 需要扩容时，将查不到metric的pod当做资源使用了0%看待</span></span><br><span class="line">			<span class="keyword">for</span> podName := <span class="keyword">range</span> missingPods &#123;</span><br><span class="line">				metrics[podName] = metricsclient.PodMetric&#123;Value: <span class="number">0</span>&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> rebalanceIgnored &#123;</span><br><span class="line">		<span class="comment">// 需要扩容时，将notready的pod当做资源使用了0%看待</span></span><br><span class="line">		<span class="keyword">for</span> podName := <span class="keyword">range</span> ignoredPods &#123;</span><br><span class="line">			metrics[podName] = metricsclient.PodMetric&#123;Value: <span class="number">0</span>&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 7、在考虑了查不到metric的pod和notready的pod的情况下重新计算当前资源使用率和期望使用率的比值</span></span><br><span class="line">	newUsageRatio, _, _, err := metricsclient.GetResourceUtilizationRatio(metrics, requests, targetUtilization)</span><br><span class="line">	<span class="comment">// 异常处理略</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> math.Abs(<span class="number">1.0</span>-newUsageRatio) &lt;= c.tolerance || (usageRatio &lt; <span class="number">1.0</span> &amp;&amp; newUsageRatio &gt; <span class="number">1.0</span>) || (usageRatio &gt; <span class="number">1.0</span> &amp;&amp; newUsageRatio &lt; <span class="number">1.0</span>) &#123;</span><br><span class="line">		<span class="comment">// 当新结果也在容忍范围内或者新旧结果完全相反时，不做修改</span></span><br><span class="line">		<span class="keyword">return</span> currentReplicas, utilization, rawUtilization, timestamp, <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 按照算法计算期望的实例个数</span></span><br><span class="line">	<span class="keyword">return</span> <span class="keyword">int32</span>(math.Ceil(newUsageRatio * <span class="keyword">float64</span>(<span class="built_in">len</span>(metrics)))), utilization, rawUtilization, timestamp, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<h3 id="4、参考文档"><a href="#4、参考文档" class="headerlink" title="4、参考文档"></a>4、参考文档</h3><p><a href="https://kubernetes.io/zh/docs/tasks/run-application/horizontal-pod-autoscale/" target="_blank" rel="noopener">https://kubernetes.io/zh/docs/tasks/run-application/horizontal-pod-autoscale/</a></p>
+<p><a href="https://kubernetes.io/zh/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/" target="_blank" rel="noopener">https://kubernetes.io/zh/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/</a></p>
+<p><a href="https://docs.aws.amazon.com/zh_cn/eks/latest/userguide/horizontal-pod-autoscaler.html" target="_blank" rel="noopener">https://docs.aws.amazon.com/zh_cn/eks/latest/userguide/horizontal-pod-autoscaler.html</a></p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>yost
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://yost.top/2020/05/15/about-pod-autoscaler/" title="每周学习一个组件系列之Horizontal Pod Autoscaler">http://yost.top/2020/05/15/about-pod-autoscaler/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/autoscaler/" rel="tag"># autoscaler</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/01/11/about_node_exporter/" rel="prev" title="每周学习一个组件系列之node_exporter">
+      <i class="fa fa-chevron-left"></i> 每周学习一个组件系列之node_exporter
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/05/17/about-metric-server/" rel="next" title="每周学习一个组件系列之metric-server">
+      每周学习一个组件系列之metric-server <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1、启动参数"><span class="nav-text">1、启动参数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2、处理逻辑"><span class="nav-text">2、处理逻辑</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1、资源使用率来源"><span class="nav-text">2.1、资源使用率来源</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2、算法细节（来自社区文档）"><span class="nav-text">2.2、算法细节（来自社区文档）</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3、代码解析"><span class="nav-text">3、代码解析</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1、重要的数据结构"><span class="nav-text">3.1、重要的数据结构</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#3-1-1、HorizontalPodAutoscaler（v2beta1）"><span class="nav-text">3.1.1、HorizontalPodAutoscaler（v2beta1）</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2、代码目录"><span class="nav-text">3.2、代码目录</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3、代码逻辑"><span class="nav-text">3.3、代码逻辑</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#3-3-1、创建HorizontalController"><span class="nav-text">3.3.1、创建HorizontalController</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#3-3-2、运行controller"><span class="nav-text">3.3.2、运行controller</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4、参考文档"><span class="nav-text">4、参考文档</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">yost</p>
+  <div class="site-description" itemprop="description">种一棵树最好的时间是十年前，其次是现在~</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">12</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">yost</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+      <span class="post-meta-item-text">站点总字数：</span>
+    <span title="站点总字数">179k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">2:42</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script color='0,0,255' opacity='0.5' zIndex='-1' count='50' src="/lib/canvas-nest/canvas-nest-nomobile.min.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
