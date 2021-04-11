@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"yost.top","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="1、整体框架在了解volcano的结构之前，我们需要先知道为什么要有volcano，它到底解决了哪些kube-scheduler无法解决的问题。要回答这个问题，我们需要先了解kube-scheduler的调度机制，我们知道，kube-scheduler是以pod为单位来进行调度的，除了通过亲和性来做一些pod之间的关系处理之外，并没有任何pod间的关联机制。举一个例子，在AI等训练的场景，是需要一">
+<meta property="og:type" content="article">
+<meta property="og:title" content="volcano代码分析">
+<meta property="og:url" content="http://yost.top/2020/08/04/volcano-code-review/index.html">
+<meta property="og:site_name" content="yost">
+<meta property="og:description" content="1、整体框架在了解volcano的结构之前，我们需要先知道为什么要有volcano，它到底解决了哪些kube-scheduler无法解决的问题。要回答这个问题，我们需要先了解kube-scheduler的调度机制，我们知道，kube-scheduler是以pod为单位来进行调度的，除了通过亲和性来做一些pod之间的关系处理之外，并没有任何pod间的关联机制。举一个例子，在AI等训练的场景，是需要一">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://yost.top/2020/08/04/volcano-code-review/arch_2.png">
+<meta property="og:image" content="http://yost.top/2020/08/04/volcano-code-review/scheduler.png">
+<meta property="article:published_time" content="2020-08-04T07:47:30.000Z">
+<meta property="article:modified_time" content="2021-04-11T13:02:56.452Z">
+<meta property="article:author" content="yost">
+<meta property="article:tag" content="volcano">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yost.top/2020/08/04/volcano-code-review/arch_2.png">
+
+<link rel="canonical" href="http://yost.top/2020/08/04/volcano-code-review/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>volcano代码分析 | yost</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">yost</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yost.top/2020/08/04/volcano-code-review/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="yost">
+      <meta itemprop="description" content="种一棵树最好的时间是十年前，其次是现在~">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="yost">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          volcano代码分析
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-08-04 15:47:30" itemprop="dateCreated datePublished" datetime="2020-08-04T15:47:30+08:00">2020-08-04</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h3 id="1、整体框架"><a href="#1、整体框架" class="headerlink" title="1、整体框架"></a>1、整体框架</h3><p>在了解volcano的结构之前，我们需要先知道为什么要有volcano，它到底解决了哪些kube-scheduler无法解决的问题。要回答这个问题，我们需要先了解kube-scheduler的调度机制，我们知道，kube-scheduler是以pod为单位来进行调度的，除了通过亲和性来做一些pod之间的关系处理之外，并没有任何pod间的关联机制。举一个例子，在AI等训练的场景，是需要一批pod同时工作的，而且这些pod要么一起调度成功，要么一起调度失败，部分调度成功部分调度失败会导致整个任务最重还是失败的，而且调度成功的那些pod还浪费了资源，这种要么一起成功要么一起失败的场景是kube-scheduler无法解决的，所以才催生了volcano以及volcano的前身kube-batch的诞生。</p>
+<a id="more"></a>
+
+
+
+<p>volcano整体架构可以直接参考<a href="https://volcano.sh/docs/architecture/" target="_blank" rel="noopener">官方网站的文档</a>，这里做一下简要的概述：</p>
+<p><img src="/2020/08/04/volcano-code-review/arch_2.png" alt="image-20200805153351133"></p>
+<p>volcano主要由scheduler、controller和webhook三部分组成，其中：</p>
+<ul>
+<li>scheduler主要负责batch调度，如fair-share（优先调度占用资源少的）、gang-scheduling（pod组批量调度）等</li>
+<li>controller主要负责对用户创建的<code>batch.volcano.sh/v1alpha1/job</code>以及其他crd资源进行reconcile</li>
+<li>webhook则是对kube-apiserver收到的请求镜像validate和admission处理</li>
+</ul>
+<h3 id="2、controller"><a href="#2、controller" class="headerlink" title="2、controller"></a>2、controller</h3><p>在了解controller之前，我们需要先了解volcano中到底管理的是哪些CRD资源，在部署volcano的<a href="https://github.com/volcano-sh/volcano/blob/master/installer/volcano-development.yaml" target="_blank" rel="noopener">yaml</a>中可以看到一共创建了4个CRD，分别是<code>Job</code>、<code>Command</code>、<code>PodGroup</code>和<code>Queue</code>。其中每一个controller的功能如下：</p>
+<h4 id="2-1、Job"><a href="#2-1、Job" class="headerlink" title="2.1、Job"></a>2.1、Job</h4><h5 id="2-1-1、数据结构"><a href="#2-1-1、数据结构" class="headerlink" title="2.1.1、数据结构"></a>2.1.1、数据结构</h5><h5 id="2-1-2、代码逻辑"><a href="#2-1-2、代码逻辑" class="headerlink" title="2.1.2、代码逻辑"></a>2.1.2、代码逻辑</h5><p>job-controller中主要list-watch的是<code>Job</code>和<code>Pod</code>，同时也会watch<code>Command</code>资源的add、<code>PodGroup</code>的update和<code>PriorityClasses</code>的add和delete。job controller中有两个特别重要的成员，分别是<code>queueList</code>和<code>cache</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// pkg/controllers/job/job_controller.go</span></span><br><span class="line"><span class="comment">// jobcontroller the Job jobcontroller type.</span></span><br><span class="line"><span class="keyword">type</span> jobcontroller <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// queueList是所有watch到的对象，注意这里之所以是slice是为了多worker协同，每个worker一个queue</span></span><br><span class="line">    <span class="comment">// controller根据job的namecepace-name来进行hash后随机分配到各个queue中，其实这可能存在一定的</span></span><br><span class="line">	queueList    []workqueue.RateLimitingInterface</span><br><span class="line">    <span class="comment">// cache是所有list到的job对象的缓存</span></span><br><span class="line">	cache        jobcache.Cache</span><br><span class="line">	<span class="comment">// 其他成员略</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>queueList</code>的本质是一个队列，队列的元素是自定义的一个<code>Request</code>对象，可以看到<code>Request</code>中主要包含的是跟<code>Job</code>相关的key信息，这也符合一般的队列模型，queue中存放key，cache中存放实际的数据：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// pkg/controllers/apis/request.go</span></span><br><span class="line"><span class="comment">// Request struct.</span></span><br><span class="line"><span class="keyword">type</span> Request <span class="keyword">struct</span> &#123;</span><br><span class="line">	Namespace <span class="keyword">string</span>    <span class="comment">// job的namespace</span></span><br><span class="line">	JobName   <span class="keyword">string</span>    <span class="comment">// job的name</span></span><br><span class="line">	TaskName  <span class="keyword">string</span>    <span class="comment">// task的name</span></span><br><span class="line">	QueueName <span class="keyword">string</span>    <span class="comment">// 分配到的Queue的name</span></span><br><span class="line"></span><br><span class="line">	Event      v1alpha1.Event</span><br><span class="line">	ExitCode   <span class="keyword">int32</span></span><br><span class="line">	Action     v1alpha1.Action</span><br><span class="line">	JobVersion <span class="keyword">int32</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>cache</code>的本质是一个<code>Job</code>资源的map，key是<code>namespace/name</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// pkg/controllers/cache/cache.go</span></span><br><span class="line"><span class="keyword">type</span> jobCache <span class="keyword">struct</span> &#123;</span><br><span class="line">	sync.Mutex</span><br><span class="line">    <span class="comment">// 保存所有的job资源，key是namespace/name</span></span><br><span class="line">	jobs        <span class="keyword">map</span>[<span class="keyword">string</span>]*apis.JobInfo</span><br><span class="line">    <span class="comment">// 待清理的job</span></span><br><span class="line">	deletedJobs workqueue.RateLimitingInterface</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>value中既包含了<code>Job</code>的信息，也包含了这个job对应的<code>Pods</code>的信息</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> JobInfo <span class="keyword">struct</span> &#123;</span><br><span class="line">	Namespace <span class="keyword">string</span></span><br><span class="line">	Name      <span class="keyword">string</span></span><br><span class="line">	Job  *batch.Job    <span class="comment">// 保存的Job实体</span></span><br><span class="line">	Pods <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">map</span>[<span class="keyword">string</span>]*v1.Pod  <span class="comment">// </span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>知道了controller中的关键的数据结构，我们也就能猜测controller的reconcile的逻辑了：生产者通过list-watch将<code>Job</code>的key信息加入到<code>queueList</code>中，将<code>Job</code>的实体信息保存到<code>jobCache</code>中缓存，消费者从<code>queueList</code>中获取数据并进行处理。其主要代码在<code>processNextReq</code>函数中：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// pkg/controllers/job/job_controller.go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(cc *jobcontroller)</span> <span class="title">processNextReq</span><span class="params">(count <span class="keyword">uint32</span>)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">    <span class="comment">// 前面部分代码略，主要是从队列中获取key信息</span></span><br><span class="line">    <span class="comment">// 然后从cache中获取job实体</span></span><br><span class="line">	jobInfo, err := cc.cache.Get(jobcache.JobKeyByReq(&amp;req))</span><br><span class="line">    <span class="comment">// 1、将job根据其job.Status.State.Phase封装成state</span></span><br><span class="line">	st := state.NewState(jobInfo)</span><br><span class="line">    <span class="comment">// 2、根据job的policy等信息获取action</span></span><br><span class="line">	action := applyPolicies(jobInfo.Job, &amp;req)</span><br><span class="line">    <span class="comment">// 3、执行对应state的逻辑，里面主要是KillJob或者SyncJob</span></span><br><span class="line">	<span class="keyword">if</span> err := st.Execute(action); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="comment">// 错误处理，如果执行失败则重试，如果失败次数超过最大重试次数则重新入队列</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 处理成功则从队列中移除</span></span><br><span class="line">	queue.Forget(req)</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>不同Action和State对应的处理逻辑（空白的为<code>KillJob</code>）：</p>
+<table>
+<thead>
+<tr>
+<th>Action\State</th>
+<th>Pending</th>
+<th>Aborting</th>
+<th>Aborted</th>
+<th>Running</th>
+<th>Restarting</th>
+<th>Completing</th>
+<th>Terminating</th>
+<th>Terminated<br>Completed<br>Failed</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>AbortJob</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>RestartJob</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>RestartTask</td>
+<td>SyncJob</td>
+<td></td>
+<td></td>
+<td>SyncJob</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>TerminateJob</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>CompleteJob</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>ResumeJob</td>
+<td>SyncJob</td>
+<td></td>
+<td></td>
+<td>SyncJob</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>SyncJob</td>
+<td>SyncJob</td>
+<td></td>
+<td></td>
+<td>SyncJob</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>EnqueueJob</td>
+<td>SyncJob</td>
+<td></td>
+<td></td>
+<td>SyncJob</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>SyncQueue</td>
+<td>SyncJob</td>
+<td></td>
+<td></td>
+<td>SyncJob</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>OpenQueue</td>
+<td>SyncJob</td>
+<td></td>
+<td></td>
+<td>SyncJob</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>CloseQueue</td>
+<td>SyncJob</td>
+<td></td>
+<td></td>
+<td>SyncJob</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+<p>通过以上过程我们可以看到Job的reconcile中存在比较多的状态，因此代码中使用了Action和State两个状态来进行状态机的转移，不过最终处理的逻辑主要就是<code>SyncJob</code>和<code>KillJob</code>两种，因此我们主要分析这两部分的逻辑。</p>
+<h6 id="SyncJob"><a href="#SyncJob" class="headerlink" title="SyncJob"></a><code>SyncJob</code></h6><p>从前面状态转移的表格中，我们看到只有<code>Pending</code>和<code>Running</code>状态才有机会进入到<code>SyncJob</code>的流程中，其实也就是从创建Job到Job正常运行的过程，因此可以预料<code>SyncJob</code>主要就是将Job运行起来。主要的流程如下：</p>
+<ul>
+<li>对于新Job先进行初始化：创建对应的PVC（volcano中的pvc需要自己管理，没有k8s的controller）和PodGroup（一个Job对应一个PodGroup），注意创建出来的PodGroup则由PodGroup controller管理且其name和Job保持一致</li>
+<li>根据Job中的Task变化来生成要创建的pod list和要删除的pod list</li>
+<li>分别起协程调用kube-apiserver创建和删除这两个list中的pod，需要注意的是，为了不让k8s的调度器处理这些新创建的pod，Job中需要携带调度器的信息并最终传入到pod上，这样k8s的调度器会过滤掉这些带有volcano调度器名字的pod，同样volcano的调度器则只会过滤出这些带有volcano调度器名字的pod，避免相互影响，在创建Job的时候，webhook中会默认给Job加上<code>volcano</code>这个调度器名字</li>
+<li>更新Job的状态，更新jobCache缓存</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// pkg/controllers/job/job_controller_actions.go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(cc *jobcontroller)</span> <span class="title">syncJob</span><span class="params">(jobInfo *apis.JobInfo, updateStatus state.UpdateStatusFn)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    <span class="comment">// 部分略</span></span><br><span class="line">	<span class="comment">// job的状态（job.Status.State.Phase）为空或者Pending或者Restarting则进行初始化</span></span><br><span class="line">	<span class="keyword">if</span> !isInitiated(job) &#123;</span><br><span class="line">		<span class="keyword">var</span> err error</span><br><span class="line">        <span class="comment">// 初始化Job，主要是创建对应的PVC和PodGroup，注意PodGroup中的Name同Job的Name</span></span><br><span class="line">        <span class="comment">//     PodGroup中的QueueName是直接使用了Job中的QueueName</span></span><br><span class="line">		<span class="keyword">if</span> job, err = cc.initiateJob(job); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="keyword">var</span> err error</span><br><span class="line">		<span class="comment">// 如果job已经初始化了，则根据job的MinAvailable字段是否变化来更新PodGroup</span></span><br><span class="line">		<span class="keyword">if</span> err = cc.initOnJobUpdate(job); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">    <span class="comment">// 初始化后更新job状态，代码略</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 根据job中的Tasks的template创建对应的Pod样例</span></span><br><span class="line">	<span class="keyword">for</span> _, ts := <span class="keyword">range</span> job.Spec.Tasks &#123;</span><br><span class="line">		<span class="comment">// 部分代码略</span></span><br><span class="line">		<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="keyword">int</span>(ts.Replicas); i++ &#123;</span><br><span class="line">            <span class="comment">// 可以看到podname是带有编号的</span></span><br><span class="line">			podName := fmt.Sprintf(jobhelpers.PodNameFmt, job.Name, name, i)</span><br><span class="line">			<span class="keyword">if</span> pod, found := pods[podName]; !found &#123;</span><br><span class="line">                <span class="comment">// pod不存在时，创建新pod的样例，注意创建的时会将job、task相关的信息写到pod的annotation和label中</span></span><br><span class="line">                <span class="comment">//   其中有一个很关键的信息是会把前面创建的PodGroup的name写到pod的annotation中</span></span><br><span class="line">				newPod := createJobPod(job, tc, i)</span><br><span class="line">				<span class="keyword">if</span> err := cc.pluginOnPodCreate(job, newPod); err != <span class="literal">nil</span> &#123;</span><br><span class="line">					<span class="keyword">return</span> err</span><br><span class="line">				&#125;</span><br><span class="line">				podToCreate = <span class="built_in">append</span>(podToCreate, newPod)</span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="comment">// 删掉已经存在的pod，目的是缩容时删除缓存中前面的pod，然后将剩下的加入到删除队列中</span></span><br><span class="line">				<span class="built_in">delete</span>(pods, podName)</span><br><span class="line">				<span class="keyword">if</span> pod.DeletionTimestamp != <span class="literal">nil</span> &#123;</span><br><span class="line">					klog.Infof(<span class="string">"Pod &lt;%s/%s&gt; is terminating"</span>, pod.Namespace, pod.Name)</span><br><span class="line">					atomic.AddInt32(&amp;terminating, <span class="number">1</span>)</span><br><span class="line">					<span class="keyword">continue</span></span><br><span class="line">				&#125;</span><br><span class="line"></span><br><span class="line">				classifyAndAddUpPodBaseOnPhase(pod, &amp;pending, &amp;running, &amp;succeeded, &amp;failed, &amp;unknown)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">        <span class="comment">// 将剩下的pod加入到删除队列中（缩容时的场景），可以看到缩容时时优先删除</span></span><br><span class="line">		<span class="keyword">for</span> _, pod := <span class="keyword">range</span> pods &#123;</span><br><span class="line">			podToDelete = <span class="built_in">append</span>(podToDelete, pod)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	waitCreationGroup := sync.WaitGroup&#123;&#125;</span><br><span class="line">	waitCreationGroup.Add(<span class="built_in">len</span>(podToCreate))</span><br><span class="line">	<span class="keyword">for</span> _, pod := <span class="keyword">range</span> podToCreate &#123;</span><br><span class="line">        <span class="comment">// 起协程创建pod</span></span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(pod *v1.Pod)</span></span> &#123;</span><br><span class="line">			<span class="keyword">defer</span> waitCreationGroup.Done()</span><br><span class="line">			newPod, err := cc.kubeClient.CoreV1().Pods(pod.Namespace).Create(context.TODO(), pod, metav1.CreateOptions&#123;&#125;)</span><br><span class="line">            <span class="comment">// 错误处理逻辑略</span></span><br><span class="line">		&#125;(pod)</span><br><span class="line">	&#125;</span><br><span class="line">	waitCreationGroup.Wait() <span class="comment">// 等待协程执行完</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 错误处理逻辑略</span></span><br><span class="line"></span><br><span class="line">	waitDeletionGroup := sync.WaitGroup&#123;&#125;</span><br><span class="line">	waitDeletionGroup.Add(<span class="built_in">len</span>(podToDelete))</span><br><span class="line">	<span class="keyword">for</span> _, pod := <span class="keyword">range</span> podToDelete &#123;</span><br><span class="line">        <span class="comment">// 起协程删除pod</span></span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(pod *v1.Pod)</span></span> &#123;</span><br><span class="line">			<span class="keyword">defer</span> waitDeletionGroup.Done()</span><br><span class="line">			err := cc.deleteJobPod(job.Name, pod)</span><br><span class="line">            <span class="comment">// 错误处理逻辑略</span></span><br><span class="line">		&#125;(pod)</span><br><span class="line">	&#125;</span><br><span class="line">	waitDeletionGroup.Wait()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 更新Job状态</span></span><br><span class="line">	newJob, err := cc.vcClient.BatchV1alpha1().Jobs(job.Namespace).UpdateStatus(context.TODO(), job, metav1.UpdateOptions&#123;&#125;)</span><br><span class="line">    <span class="comment">// 更新缓存</span></span><br><span class="line">	<span class="keyword">if</span> e := cc.cache.Update(newJob); e != <span class="literal">nil</span> &#123;</span><br><span class="line">		klog.Errorf(<span class="string">"SyncJob - Failed to update Job %v/%v in cache:  %v"</span>,</span><br><span class="line">			newJob.Namespace, newJob.Name, e)</span><br><span class="line">		<span class="keyword">return</span> e</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h6 id="KillJob"><a href="#KillJob" class="headerlink" title="KillJob"></a><code>KillJob</code></h6><p>从前面的表格中可以看出<code>KillJob</code>主要是删除Job或者异常场景触发的，Job并不支持升级操作，只支持扩缩容，因此一旦遇到异常场景会直接触发<code>KillJob</code>，其主要的代码逻辑为：</p>
+<ul>
+<li>删除这个job对应的所有的pod，同时统计各个状态的pod的数量</li>
+<li>更新Job的状态</li>
+<li>删除Job对应的PodGroup</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// pkg/controllers/job/job_controller_actions.go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(cc *jobcontroller)</span> <span class="title">killJob</span><span class="params">(jobInfo *apis.JobInfo, podRetainPhase state.PhaseMap, updateStatus state.UpdateStatusFn)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	job := jobInfo.Job</span><br><span class="line">	<span class="keyword">if</span> job.DeletionTimestamp != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="comment">// 不处理正在删除中的job（可能有其他协程的worker在处理）</span></span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">var</span> pending, running, terminating, succeeded, failed, unknown <span class="keyword">int32</span></span><br><span class="line">	<span class="keyword">var</span> errs []error</span><br><span class="line">	<span class="keyword">var</span> total <span class="keyword">int</span></span><br><span class="line">    <span class="comment">// 删除该job下的所有pod</span></span><br><span class="line">	<span class="keyword">for</span> _, pods := <span class="keyword">range</span> jobInfo.Pods &#123;</span><br><span class="line">		<span class="keyword">for</span> _, pod := <span class="keyword">range</span> pods &#123;</span><br><span class="line">			total++</span><br><span class="line">			<span class="keyword">if</span> pod.DeletionTimestamp != <span class="literal">nil</span> &#123;</span><br><span class="line">				<span class="comment">// 跳过已经在删除中的pod</span></span><br><span class="line">				terminating++</span><br><span class="line">				<span class="keyword">continue</span></span><br><span class="line">			&#125;</span><br><span class="line">			_, retain := podRetainPhase[pod.Status.Phase]</span><br><span class="line">			<span class="keyword">if</span> !retain &#123;</span><br><span class="line">                <span class="comment">// 调用kube-apiserver的接口删除状态不是Success或者Failed的pod</span></span><br><span class="line">				err := cc.deleteJobPod(job.Name, pod)</span><br><span class="line">				<span class="keyword">if</span> err == <span class="literal">nil</span> &#123;</span><br><span class="line">					terminating++</span><br><span class="line">					<span class="keyword">continue</span></span><br><span class="line">				&#125;</span><br><span class="line">				errs = <span class="built_in">append</span>(errs, err)</span><br><span class="line">				cc.resyncTask(pod)</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			classifyAndAddUpPodBaseOnPhase(pod, &amp;pending, &amp;running, &amp;succeeded, &amp;failed, &amp;unknown)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 错误处理略</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 更新Job状态，将各种状态的pod数量更新到status中</span></span><br><span class="line">	newJob, err := cc.vcClient.BatchV1alpha1().Jobs(job.Namespace).UpdateStatus(context.TODO(), job, metav1.UpdateOptions&#123;&#125;)</span><br><span class="line">	<span class="comment">// 错误处理略</span></span><br><span class="line">    <span class="comment">// 更新job缓存</span></span><br><span class="line">	<span class="keyword">if</span> e := cc.cache.Update(newJob); e != <span class="literal">nil</span> &#123;</span><br><span class="line">		klog.Errorf(<span class="string">"KillJob - Failed to update Job %v/%v in cache:  %v"</span>,</span><br><span class="line">			newJob.Namespace, newJob.Name, e)</span><br><span class="line">		<span class="keyword">return</span> e</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 删除这个Job对应的PodGroups</span></span><br><span class="line">	<span class="keyword">if</span> err := cc.vcClient.SchedulingV1beta1().PodGroups(job.Namespace).Delete(context.TODO(), job.Name, metav1.DeleteOptions&#123;&#125;); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="comment">// 错误处理略</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> err := cc.pluginOnJobDelete(job); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>注：job的garbage collector也可以在这里说一下。</p>
+<h6 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h6><p>通过前面的代码分析可以看到Job Controller主要的逻辑就是根据创建的Job创建对应的PodGroup以及Pod，并且维持Job的各种状态的状态机转移流程。</p>
+<h4 id="2-2、PodGroup"><a href="#2-2、PodGroup" class="headerlink" title="2.2、PodGroup"></a>2.2、PodGroup</h4><h5 id="2-2-1、数据结构"><a href="#2-2-1、数据结构" class="headerlink" title="2.2.1、数据结构"></a>2.2.1、数据结构</h5><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// PodGroup is a collection of Pod; used for batch workload.</span></span><br><span class="line"><span class="keyword">type</span> PodGroup <span class="keyword">struct</span> &#123;</span><br><span class="line">	metav1.TypeMeta <span class="string">`json:",inline"`</span></span><br><span class="line">	metav1.ObjectMeta <span class="string">`json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`</span></span><br><span class="line">	Spec PodGroupSpec <span class="string">`json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`</span></span><br><span class="line">	Status PodGroupStatus <span class="string">`json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// PodGroupSpec represents the template of a pod group.</span></span><br><span class="line"><span class="keyword">type</span> PodGroupSpec <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// MinMember defines the minimal number of members/tasks to run the pod group;</span></span><br><span class="line">	<span class="comment">// if there's not enough resources to start all tasks, the scheduler</span></span><br><span class="line">	<span class="comment">// will not start anyone.</span></span><br><span class="line">	MinMember <span class="keyword">int32</span> <span class="string">`json:"minMember,omitempty" protobuf:"bytes,1,opt,name=minMember"`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Queue defines the queue to allocate resource for PodGroup; if queue does not exist,</span></span><br><span class="line">	<span class="comment">// the PodGroup will not be scheduled. Defaults to `default` Queue with the lowest weight.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">	Queue <span class="keyword">string</span> <span class="string">`json:"queue,omitempty" protobuf:"bytes,2,opt,name=queue"`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// If specified, indicates the PodGroup's priority. "system-node-critical" and</span></span><br><span class="line">	<span class="comment">// "system-cluster-critical" are two special keywords which indicate the</span></span><br><span class="line">	<span class="comment">// highest priorities with the former being the highest priority. Any other</span></span><br><span class="line">	<span class="comment">// name must be defined by creating a PriorityClass object with that name.</span></span><br><span class="line">	<span class="comment">// If not specified, the PodGroup priority will be default or zero if there is no</span></span><br><span class="line">	<span class="comment">// default.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">	PriorityClassName <span class="keyword">string</span> <span class="string">`json:"priorityClassName,omitempty" protobuf:"bytes,3,opt,name=priorityClassName"`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// MinResources defines the minimal resource of members/tasks to run the pod group;</span></span><br><span class="line">	<span class="comment">// if there's not enough resources to start all tasks, the scheduler</span></span><br><span class="line">	<span class="comment">// will not start anyone.</span></span><br><span class="line">	MinResources *v1.ResourceList <span class="string">`json:"minResources,omitempty" protobuf:"bytes,4,opt,name=minResources"`</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// PodGroupStatus represents the current state of a pod group.</span></span><br><span class="line"><span class="keyword">type</span> PodGroupStatus <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// Current phase of PodGroup.</span></span><br><span class="line">	Phase PodGroupPhase <span class="string">`json:"phase,omitempty" protobuf:"bytes,1,opt,name=phase"`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// The conditions of PodGroup.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">	Conditions []PodGroupCondition <span class="string">`json:"conditions,omitempty" protobuf:"bytes,2,opt,name=conditions"`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// The number of actively running pods.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">	Running <span class="keyword">int32</span> <span class="string">`json:"running,omitempty" protobuf:"bytes,3,opt,name=running"`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// The number of pods which reached phase Succeeded.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">	Succeeded <span class="keyword">int32</span> <span class="string">`json:"succeeded,omitempty" protobuf:"bytes,4,opt,name=succeeded"`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// The number of pods which reached phase Failed.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">	Failed <span class="keyword">int32</span> <span class="string">`json:"failed,omitempty" protobuf:"bytes,5,opt,name=failed"`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h5 id="2-2-2、代码逻辑"><a href="#2-2-2、代码逻辑" class="headerlink" title="2.2.2、代码逻辑"></a>2.2.2、代码逻辑</h5><p>在<code>Job</code>的控制器中我们看到<code>PodGroup</code>是由<code>Job</code>创建的，并且name还和<code>Job</code>一毛一样，然后在<code>KillJob</code>的时候就会把它直接删了，似乎并没有看到这个<code>PodGroup</code>的功能。实际上这是因为<code>PodGroup</code>的功能相对而言比较简单，主要就是给<strong>不是通过Job创建的</strong>pod创建对应的<code>PodGroup</code>。在<code>PodGroup</code>的controller中，分别list了<code>Pod</code>和<code>PodGroup</code>资源，但是只watch了pod的add事件，并且只过滤了没有对应PodGroup的pod，也就是说只有单独创建pod的时候才会加入到消费者队列中：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">  <span class="comment">// pkg/controllers/podgroup/pg_controller.go</span></span><br><span class="line">  pg.podInformer.Informer().AddEventHandler(</span><br><span class="line">cache.FilteringResourceEventHandler&#123;</span><br><span class="line">	FilterFunc: <span class="function"><span class="keyword">func</span><span class="params">(obj <span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">		<span class="keyword">switch</span> v := obj.(<span class="keyword">type</span>) &#123;</span><br><span class="line">		<span class="keyword">case</span> *v1.Pod:</span><br><span class="line">                  <span class="comment">// 注意只监听没有对应PodGroup的pod</span></span><br><span class="line">			<span class="keyword">if</span> v.Spec.SchedulerName == opt.SchedulerName &amp;&amp;</span><br><span class="line">				(v.Annotations == <span class="literal">nil</span> || v.Annotations[scheduling.KubeGroupNameAnnotationKey] == <span class="string">""</span>) &#123;</span><br><span class="line">				<span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">		<span class="keyword">default</span>:</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;,</span><br><span class="line">          <span class="comment">// 从EventHandler中可以看到这里只watch pod的add事件</span></span><br><span class="line">	Handler: cache.ResourceEventHandlerFuncs&#123;</span><br><span class="line">		AddFunc: pg.addPod,</span><br><span class="line">	&#125;,</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+
+<p>在消费者队列中，controller的处理逻辑非常简单，仅对add的新pod进行处理，</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// pkg/controllers/podgroup/pg_controller.go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(pg *pgcontroller)</span> <span class="title">processNextReq</span><span class="params">()</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">	obj, shutdown := pg.queue.Get()</span><br><span class="line">	<span class="keyword">if</span> shutdown &#123;</span><br><span class="line">		klog.Errorf(<span class="string">"Fail to pop item from queue"</span>)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	req := obj.(podRequest)</span><br><span class="line">	<span class="keyword">defer</span> pg.queue.Done(req)</span><br><span class="line">    <span class="comment">// 从list缓存中获取pod信息</span></span><br><span class="line">	pod, err := pg.podLister.Pods(req.podNamespace).Get(req.podName)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		klog.Errorf(<span class="string">"Failed to get pod by &lt;%v&gt; from cache: %v"</span>, req, err)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 对于没有创建对应PodGroup的pod创建其PodGroup，并将PodGroup的name写到pod的annotation中</span></span><br><span class="line">	<span class="keyword">if</span> err := pg.createNormalPodPGIfNotExist(pod); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		klog.Errorf(<span class="string">"Failed to handle Pod &lt;%s/%s&gt;: %v"</span>, pod.Namespace, pod.Name, err)</span><br><span class="line">		pg.queue.AddRateLimited(req)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// If no error, forget it.</span></span><br><span class="line">	pg.queue.Forget(req)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>有一点需要注意的是，在创建<code>PodGroup</code>的时候，如果pod中已经有<code>QueueName</code>的annotation了，则将<code>QueueName</code>写到<code>PodGroup</code>的Spec中，如果没有则空着。不过admission-controller会给空的Job中加上默认的QueueName，因此通过Job创建的PodGroup会打上默认的QueueName，但是通过Pod创建出来的似乎并没有。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// pkg/controllers/podgroup/pg_controller_handler.go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(pg *pgcontroller)</span> <span class="title">createNormalPodPGIfNotExist</span><span class="params">(pod *v1.Pod)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	pgName := helpers.GeneratePodgroupName(pod)</span><br><span class="line">    <span class="comment">// PodGroup不存在时创建</span></span><br><span class="line">	<span class="keyword">if</span> _, err := pg.pgLister.PodGroups(pod.Namespace).Get(pgName); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="comment">// 错误处理略</span></span><br><span class="line"></span><br><span class="line">		obj := &amp;scheduling.PodGroup&#123;</span><br><span class="line">			ObjectMeta: metav1.ObjectMeta&#123;</span><br><span class="line">				Namespace:       pod.Namespace,</span><br><span class="line">				Name:            pgName,</span><br><span class="line">				OwnerReferences: newPGOwnerReferences(pod),</span><br><span class="line">			&#125;,</span><br><span class="line">			Spec: scheduling.PodGroupSpec&#123;</span><br><span class="line">				MinMember:         <span class="number">1</span>,</span><br><span class="line">				PriorityClassName: pod.Spec.PriorityClassName,</span><br><span class="line">			&#125;,</span><br><span class="line">		&#125;</span><br><span class="line">        <span class="comment">// 如果pod中已经有`QueueName`的annotation了，则将`QueueName`写到`PodGroup`的Spec中</span></span><br><span class="line">		<span class="keyword">if</span> queueName, ok := pod.Annotations[scheduling.QueueNameAnnotationKey]; ok &#123;</span><br><span class="line">			obj.Spec.Queue = queueName</span><br><span class="line">		&#125;</span><br><span class="line">        <span class="comment">// 创建PodGroup</span></span><br><span class="line">		<span class="keyword">if</span> _, err := pg.vcClient.SchedulingV1beta1().PodGroups(pod.Namespace).Create(context.TODO(), obj, metav1.CreateOptions&#123;&#125;); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			klog.Errorf(<span class="string">"Failed to create normal PodGroup for Pod &lt;%s/%s&gt;: %v"</span>,</span><br><span class="line">				pod.Namespace, pod.Name, err)</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> pg.updatePodAnnotations(pod, pgName)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="2-3、Queue"><a href="#2-3、Queue" class="headerlink" title="2.3、Queue"></a>2.3、Queue</h4><h5 id="2-3-1、数据结构"><a href="#2-3-1、数据结构" class="headerlink" title="2.3.1、数据结构"></a>2.3.1、数据结构</h5><p>在volcano中，Queue是一个nonNamespaced资源，它是一个PodGroup的队列</p>
+<h5 id="2-3-2、代码逻辑"><a href="#2-3-2、代码逻辑" class="headerlink" title="2.3.2、代码逻辑"></a>2.3.2、代码逻辑</h5><p>queue-controller中主要list-watch的是<code>Queue</code>和<code>PodGroup</code>资源，其中有两个成员比较关键，一个是用来保存事件队列的<code>queue</code>，另一个是用来标识所有<code>PodGroup</code>的<code>podGroups</code>。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// queuecontroller manages queue status.</span></span><br><span class="line"><span class="keyword">type</span> queuecontroller <span class="keyword">struct</span> &#123;</span><br><span class="line">    <span class="comment">// 其他成员略</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// watch到的事件队列，队列中的元素是2.1.2节中已经说过的Request</span></span><br><span class="line">	queue     workqueue.RateLimitingInterface</span><br><span class="line">	<span class="comment">// queue name -&gt; podgroup namespace/name</span></span><br><span class="line">    <span class="comment">// 标识所有watch到的podgroup</span></span><br><span class="line">	podGroups <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>当watch到新的<code>Queue</code>或者<code>PodGroup</code>资源时，都是将事件组装成带有<code>QueueName</code>的<code>Request</code>加入队列中，需要注意的是，无论是job-controller中还是podgroup-controller中创建的<code>PodGroup</code>都是带有podgroup.Spec.Queue的。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// pkg/controllers/queue/queue_controller_handler.go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *queuecontroller)</span> <span class="title">addQueue</span><span class="params">(obj <span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">	queue := obj.(*schedulingv1beta1.Queue)</span><br><span class="line"></span><br><span class="line">	req := &amp;apis.Request&#123;</span><br><span class="line">		QueueName: queue.Name,</span><br><span class="line">		Event:  busv1alpha1.OutOfSyncEvent,</span><br><span class="line">		Action: busv1alpha1.SyncQueueAction,</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	c.enqueue(req)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *queuecontroller)</span> <span class="title">addPodGroup</span><span class="params">(obj <span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">	pg := obj.(*schedulingv1beta1.PodGroup)</span><br><span class="line">	key, _ := cache.MetaNamespaceKeyFunc(obj)</span><br><span class="line"></span><br><span class="line">	c.pgMutex.Lock()</span><br><span class="line">	<span class="keyword">defer</span> c.pgMutex.Unlock()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> c.podGroups[pg.Spec.Queue] == <span class="literal">nil</span> &#123;</span><br><span class="line">		c.podGroups[pg.Spec.Queue] = <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">	&#125;</span><br><span class="line">    <span class="comment">// hashset，用来标识这个podgroup</span></span><br><span class="line">	c.podGroups[pg.Spec.Queue][key] = <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line"></span><br><span class="line">	req := &amp;apis.Request&#123;</span><br><span class="line">		QueueName: pg.Spec.Queue,</span><br><span class="line">		Event:  busv1alpha1.OutOfSyncEvent,</span><br><span class="line">		Action: busv1alpha1.SyncQueueAction,</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	c.enqueue(req)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在消费者端，queue-controller中的逻辑跟job-controller有点类似，先根据<code>Queue</code>的状态生成处理函数，然后根据req中的Action来进行处理。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *queuecontroller)</span> <span class="title">handleQueue</span><span class="params">(req *apis.Request)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	startTime := time.Now()</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		klog.V(<span class="number">4</span>).Infof(<span class="string">"Finished syncing queue %s (%v)."</span>, req.QueueName, time.Since(startTime))</span><br><span class="line">	&#125;()</span><br><span class="line">    <span class="comment">// 从informer缓存中获取Queue信息</span></span><br><span class="line">	queue, err := c.queueLister.Get(req.QueueName)</span><br><span class="line">	<span class="comment">// 错误处理略</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 根据queue的状态生成处理函数</span></span><br><span class="line">	queueState := queuestate.NewState(queue)</span><br><span class="line">	<span class="comment">// 错误处理略</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 执行queue处理函数，根据Action和State来执行</span></span><br><span class="line">	<span class="keyword">if</span> err := queueState.Execute(req.Action); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> fmt.Errorf(<span class="string">"sync queue %s failed for %v, event is %v, action is %s"</span>,</span><br><span class="line">			req.QueueName, err, req.Event, req.Action)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>类似的，queue-controller也有自己的处理函数转移表</p>
+<table>
+<thead>
+<tr>
+<th>Action\State</th>
+<th>Open</th>
+<th>Closed</th>
+<th>Closing</th>
+<th>Unknown</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>OpenQueue</td>
+<td>SyncQueue</td>
+<td>OpenQueue</td>
+<td>OpenQueue</td>
+<td>OpenQueue</td>
+</tr>
+<tr>
+<td>CloseQueue</td>
+<td>CloseQueue</td>
+<td>SyncQueue</td>
+<td>SyncQueue</td>
+<td>CloseQueue</td>
+</tr>
+<tr>
+<td>SyncQueue</td>
+<td>SyncQueue</td>
+<td>SyncQueue</td>
+<td>SyncQueue</td>
+<td>SyncQueue</td>
+</tr>
+</tbody></table>
+<p>可以看到主要的处理仅包含OpenQueue、SyncQueue和CloseQueue三种，这三种的处理逻辑比较简单，这里就不贴代码直接描述一遍：</p>
+<ul>
+<li><code>OpenQueue</code>：进入到<code>OpenQueue</code>的Queue状态是Closed、Closing和Unknown中的一种，因此<code>OpenQueue</code>做的仅仅是把Queue的状态更新成Open</li>
+<li><code>SyncQueue</code>：主要对该<code>Queue</code>中所有的PodGroup状态进行统计并更新到queueStatus中</li>
+<li><code>CloseQueue</code>：跟<code>OpenQueue</code>类似，把Queue的状态更新成Closed</li>
+</ul>
+<h3 id="3、scheduler"><a href="#3、scheduler" class="headerlink" title="3、scheduler"></a>3、scheduler</h3><p>scheduler是volcano的核心，它是以<code>PodGroup</code>为基本单位来进行调度的。</p>
+<blockquote>
+<p>在设计之初我们就把 job和podgroup两个概念分开。所有跟作业相关的信息，都是放在 job里面；所有跟调度相关的信息都放在podgroup里面，这个设计与Kubernetes非常相像。</p>
+</blockquote>
+<p>scheduler的架构可以参考下图：</p>
+<p><img src="/2020/08/04/volcano-code-review/scheduler.png" alt="img"></p>
+<p>调度器的本质还是给所有没有绑定到节点上的pod找到合适的节点并绑定上去，但是为了实现gang调度、抢占、资源预留等功能，不能跟k8s的调度器一样通过watch到的pod事件来触发调度（大多数情况下，每一个pod的调度都是单pod最优），所以volcano的调度器采用的是周期性全局调度的方式。我们在看volcano的调度器代码时也能够看到调度逻辑也是这样的思路：</p>
+<ul>
+<li>list-watch的是PodGroup和Node</li>
+<li>周期性创建一个全局调度的Session，对集群做一次快照</li>
+<li>在每一个Session中，根据配置的调度算法和策略对快照中的所有PodGroup进行调度</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Scheduler watches for new unscheduled pods for volcano. It attempts to find</span></span><br><span class="line"><span class="comment">// nodes that they fit on and writes bindings back to the api server.</span></span><br><span class="line"><span class="keyword">type</span> Scheduler <span class="keyword">struct</span> &#123;</span><br><span class="line">	cache          schedcache.Cache   <span class="comment">// Cache是一个接口，实现了这个接口的是SchedulerCache，所有调度资源的缓存</span></span><br><span class="line">	actions        []framework.Action <span class="comment">// 调度器的配置文件中设置的每一轮调度的处理逻辑，有enqueue, allocate, backfill等</span></span><br><span class="line">	plugins        []conf.Tier        <span class="comment">// 调度器的配置文件中设置的调度算法的各个层级的算法集合</span></span><br><span class="line">	configurations []conf.Configuration  <span class="comment">// 调度器每个Action对应的参数</span></span><br><span class="line">	schedulerConf  <span class="keyword">string</span>             <span class="comment">// 调度器配置文件路径</span></span><br><span class="line">	schedulePeriod time.Duration      <span class="comment">// 调度器的调度周期，默认1s</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>一个默认的配置文件如下：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">actions:</span> <span class="string">"enqueue, allocate, backfill"</span></span><br><span class="line"><span class="attr">tiers:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">plugins:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">priority</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">gang</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">plugins:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">drf</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">predicates</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">proportion</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">nodeorder</span></span><br></pre></td></tr></table></figure>
+
+<p>可以看到其中Action的顺序是<code>enqueue</code>、<code>allocate</code>和<code>backfill</code>，调度器分成两层，一层是priority和gang调度，另一层是drf、predicates、proportion和nodeorder调度。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// pkg/scheduler/scheduler.go</span></span><br><span class="line"><span class="comment">// Run runs the Scheduler</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(pc *Scheduler)</span> <span class="title">Run</span><span class="params">(stopCh &lt;-<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">	<span class="comment">// list-watch调度器所需要的资源</span></span><br><span class="line">	<span class="keyword">go</span> pc.cache.Run(stopCh)</span><br><span class="line">	pc.cache.WaitForCacheSync(stopCh)</span><br><span class="line">    <span class="comment">// 周期性执行runOnce</span></span><br><span class="line">	<span class="keyword">go</span> wait.Until(pc.runOnce, pc.schedulePeriod, stopCh)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(pc *Scheduler)</span> <span class="title">runOnce</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// metric代码略</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 注意每次进行调度的时候都会load一次配置文件（目的是为了热更新configmap？）</span></span><br><span class="line">	pc.loadSchedulerConf()</span><br><span class="line">    <span class="comment">// 创建一个新的Session，将cache、配置等复制到其中，并为每一个调度器注册其对应的调度算法函数</span></span><br><span class="line">	ssn := framework.OpenSession(pc.cache, pc.plugins, pc.configurations)</span><br><span class="line">	<span class="keyword">defer</span> framework.CloseSession(ssn)</span><br><span class="line">    <span class="comment">// 根据配置文件中的action顺序执行调度操作</span></span><br><span class="line">	<span class="keyword">for</span> _, action := <span class="keyword">range</span> pc.actions &#123;</span><br><span class="line">		actionStartTime := time.Now()</span><br><span class="line">		action.Execute(ssn)</span><br><span class="line">		metrics.UpdateActionDuration(action.Name(), metrics.Duration(actionStartTime))</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>各个调度器所注册的调度算法如下表所示，“*”表示该调度器注册了该算法。如果要新增一个调度器，那么就只需要去实现对应过程的function并注册进去就可以了。</p>
+<table>
+<thead>
+<tr>
+<th>function\plugin</th>
+<th>binpack</th>
+<th>conformance</th>
+<th>drf</th>
+<th>gang</th>
+<th>nodeorder</th>
+<th>predicate</th>
+<th>priority</th>
+<th>proportion</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>jobOrderFn</td>
+<td></td>
+<td></td>
+<td>*</td>
+<td>*</td>
+<td></td>
+<td></td>
+<td>*</td>
+<td></td>
+</tr>
+<tr>
+<td>queueOrderFn</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>*</td>
+</tr>
+<tr>
+<td>taskOrderFn</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>*</td>
+<td></td>
+</tr>
+<tr>
+<td>namespaceOrderFn</td>
+<td></td>
+<td></td>
+<td>*</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>predicateFn</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>*</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>nodeOrderFn</td>
+<td>*</td>
+<td></td>
+<td></td>
+<td></td>
+<td>*</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>batchNodeOrderFn</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>*</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>preemptableFn</td>
+<td></td>
+<td>*</td>
+<td>*</td>
+<td>*</td>
+<td></td>
+<td></td>
+<td>*</td>
+<td></td>
+</tr>
+<tr>
+<td>reclaimableFn</td>
+<td></td>
+<td>*</td>
+<td></td>
+<td>*</td>
+<td></td>
+<td></td>
+<td></td>
+<td>*</td>
+</tr>
+<tr>
+<td>overusedFn</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>*</td>
+</tr>
+<tr>
+<td>jobReadyFn</td>
+<td></td>
+<td></td>
+<td></td>
+<td>*</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>jobPipelinedFn</td>
+<td></td>
+<td></td>
+<td></td>
+<td>*</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>jobValidFn</td>
+<td></td>
+<td></td>
+<td></td>
+<td>*</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>jobEnqueueableFn</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>*</td>
+</tr>
+</tbody></table>
+<p>在volcano的调度器中，当前实现的Action有五个：</p>
+<ul>
+<li><p>enqueue（入队）：入队主要就是过滤出需要处理的Job，先通过<code>QueueOrderFn</code>根据优先级将所有要处理的Queue加入到一个队列中，同时每一个Queue上的Job也通过<code>JobOrderFn</code>根据优先级将所有要处理的Job加入到这个Queue的队列中，然后根据Queue和Job的优先级来对每一个Job进行<code>jobEnqueueableFn</code>预判断（当前资源是否满足Job的需求）</p>
+</li>
+<li><p>allocate（分配）：分配其实就是给每一个Task绑定节点，是调度的核心，其处理逻辑主要分以下6步，主要逻辑就是每次选择一个优先级最高的Task，并找到打分最高的节点bind过去，直到所有的Task都处理完</p>
+<ul>
+<li>通过<code>NamespaceOrderFn</code>根据优先级选择一个需要去处理的namespace</li>
+<li>通过<code>QueueOrderFn</code>根据优先级选择一个需要去处理的Queue</li>
+<li>通过<code>JobOrderFn</code>根据优先级选择一个需要去处理的Job</li>
+<li>通过<code>TaskOrderFn</code>根据优先级选择一个需要去处理的Task</li>
+<li>通过<code>predicateFn</code>过滤去除不满足要求的节点</li>
+<li>通过<code>NodeOrderFn</code>来给节点进行打分，并将分数最高的节点bind给这个Task</li>
+</ul>
+</li>
+<li><p>backfill（回填）：volcano中为了避免饥饿而有条件地为大作业保留了一些资源，回填是对剩下来未调度小Task进行bind的过程，对于每一个未调度的Task：</p>
+<ul>
+<li>遍历所有节点，通过<code>predicateFn</code>滤除不满足要求的node</li>
+<li>尝试将该Task调度到满足要求的节点上</li>
+</ul>
+</li>
+<li><p><a href="https://volcano.sh/docs/scheduler-preempt/" target="_blank" rel="noopener">preempt</a>（抢占）：抢占是一种特殊的Action，它主要处理的场景是当一个高优先级的Task进入调度器但是当前环境中的资源已经无法满足这个Task的时候，需要能将已经调度的任务中驱逐一部分优先级低的Task，以便这个高优先级的Task能够正常运行，因此其处理过程包含选择优先级低的Task并驱逐的逻辑。其处理流程为，对于PodGroup状态不为Pending的Job</p>
+<ul>
+<li>通过<code>jobValidFn</code>和<code>jobPipelinedFn</code>进行过滤</li>
+<li>通过<code>JobOrderFn</code>和<code>TaskOrderFn</code>对集群中的Job和Task进行优先级队列的初始化</li>
+<li>对于每一个需要进行抢占调度的Task：<ul>
+<li>通过<code>predicateFn</code>对所有节点进行过滤，通过<code>batchNodeOrderFn</code>、<code>nodeOrderFn</code>、<code>nodeReduceFn</code>对所有节点进行打分和排序</li>
+<li>按照分数排序对每个节点上的Task调用<code>preemptableFns</code>判断该Task是否可以抢占（也就是这个Task是否可以驱逐用来腾出资源给待调度的Task），指导找到节点并且可以驱逐的Task腾出来的资源满足待调度的Task为止</li>
+<li>对于抢占而言，该Action中同时考虑了跨Queue和Queue内部跨Job之间的抢占</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><a href="https://volcano.sh/docs/scheduler-reclaim/" target="_blank" rel="noopener">reclaim</a>（回收）：在volcano中，集群的资源是根据权重给每一个Queue分配的，当有一个新的Queue创建出来时，第一个Job的Task进行资源调度的时候就会触发回收，也就是对之前创建的Queue中的Task进行驱逐，腾出对应比例的资源给这个新Queue。其处理流程为：</p>
+<ul>
+<li>通过<code>queueOrderFn</code>对当前集群中的Queue进行优先级排序</li>
+<li>通过<code>JobOrderFn</code>和<code>TaskOrderFn</code>对集群中的Job和Task进行优先级队列的初始化</li>
+<li>通过<code>overusedFn</code>过滤掉超配额的Queue</li>
+<li>对于每一个Task，通过<code>reclaimableFn</code>来判断是否需要触发回收</li>
+<li>对于每一个需要触发回收的Task，执行驱逐操作（其实就是把要驱逐的Pod删掉）</li>
+</ul>
+</li>
+</ul>
+<p>通过以上的归纳其实也可以得到function和action之间的关系（表格中的数字表示调用顺序）：</p>
+<table>
+<thead>
+<tr>
+<th>function\action</th>
+<th>enqueue</th>
+<th>allocate</th>
+<th>backfill</th>
+<th>preempt</th>
+<th>reclaim</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>jobOrderFn</td>
+<td>2</td>
+<td>3</td>
+<td></td>
+<td>3</td>
+<td>2</td>
+</tr>
+<tr>
+<td>queueOrderFn</td>
+<td>1</td>
+<td>2</td>
+<td></td>
+<td></td>
+<td>1</td>
+</tr>
+<tr>
+<td>taskOrderFn</td>
+<td></td>
+<td>4</td>
+<td></td>
+<td>4</td>
+<td>3</td>
+</tr>
+<tr>
+<td>namespaceOrderFn</td>
+<td></td>
+<td>1</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>predicateFn</td>
+<td></td>
+<td>5</td>
+<td>1</td>
+<td>5</td>
+<td></td>
+</tr>
+<tr>
+<td>nodeOrderFn</td>
+<td></td>
+<td>6</td>
+<td></td>
+<td>7</td>
+<td></td>
+</tr>
+<tr>
+<td>batchNodeOrderFn</td>
+<td></td>
+<td></td>
+<td></td>
+<td>6</td>
+<td></td>
+</tr>
+<tr>
+<td>preemptableFn</td>
+<td></td>
+<td></td>
+<td></td>
+<td>8</td>
+<td></td>
+</tr>
+<tr>
+<td>reclaimableFn</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>5</td>
+</tr>
+<tr>
+<td>overusedFn</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>4</td>
+</tr>
+<tr>
+<td>jobReadyFn</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>jobPipelinedFn</td>
+<td></td>
+<td></td>
+<td></td>
+<td>2</td>
+<td></td>
+</tr>
+<tr>
+<td>jobValidFn</td>
+<td></td>
+<td></td>
+<td></td>
+<td>1</td>
+<td></td>
+</tr>
+<tr>
+<td>jobEnqueueableFn</td>
+<td>3</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+<h3 id="参考文章"><a href="#参考文章" class="headerlink" title="参考文章"></a>参考文章</h3>
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>yost
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://yost.top/2020/08/04/volcano-code-review/" title="volcano代码分析">http://yost.top/2020/08/04/volcano-code-review/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/volcano/" rel="tag"># volcano</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/06/01/about-raft-zh-cn/" rel="prev" title="寻找一种易于理解的一致性算法（扩展版）">
+      <i class="fa fa-chevron-left"></i> 寻找一种易于理解的一致性算法（扩展版）
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2021/01/08/beego-code-review/" rel="next" title="beego代码分析">
+      beego代码分析 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1、整体框架"><span class="nav-text">1、整体框架</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2、controller"><span class="nav-text">2、controller</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1、Job"><span class="nav-text">2.1、Job</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#2-1-1、数据结构"><span class="nav-text">2.1.1、数据结构</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-1-2、代码逻辑"><span class="nav-text">2.1.2、代码逻辑</span></a><ol class="nav-child"><li class="nav-item nav-level-6"><a class="nav-link" href="#SyncJob"><span class="nav-text">SyncJob</span></a></li><li class="nav-item nav-level-6"><a class="nav-link" href="#KillJob"><span class="nav-text">KillJob</span></a></li><li class="nav-item nav-level-6"><a class="nav-link" href="#总结"><span class="nav-text">总结</span></a></li></ol></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2、PodGroup"><span class="nav-text">2.2、PodGroup</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#2-2-1、数据结构"><span class="nav-text">2.2.1、数据结构</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-2-2、代码逻辑"><span class="nav-text">2.2.2、代码逻辑</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3、Queue"><span class="nav-text">2.3、Queue</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#2-3-1、数据结构"><span class="nav-text">2.3.1、数据结构</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-3-2、代码逻辑"><span class="nav-text">2.3.2、代码逻辑</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3、scheduler"><span class="nav-text">3、scheduler</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#参考文章"><span class="nav-text">参考文章</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">yost</p>
+  <div class="site-description" itemprop="description">种一棵树最好的时间是十年前，其次是现在~</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">15</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">yost</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script color='0,0,255' opacity='0.5' zIndex='-1' count='50' src="/lib/canvas-nest/canvas-nest-nomobile.min.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
