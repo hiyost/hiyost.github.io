@@ -16,7 +16,9 @@ tags: volcano
 
 volcano整体架构可以直接参考[官方网站的文档](https://volcano.sh/docs/architecture/)，这里做一下简要的概述：
 
-![image-20200805153351133](2020-08-04-volcano-code-review/image-20200805153351133.png)
+
+
+![image-20200805153351133](2020-08-04-volcano-code-review/arch_2.png)
 
 volcano主要由scheduler、controller和webhook三部分组成，其中：
 
@@ -598,7 +600,7 @@ scheduler是volcano的核心，它是以`PodGroup`为基本单位来进行调度
 
 scheduler的架构可以参考下图：
 
-![img](2020-08-04-volcano-code-review/1f1b326c5fa1f55628d8_848x413.png@900-0-90-f.png)
+![img](2020-08-04-volcano-code-review/scheduler.png)
 
 调度器的本质还是给所有没有绑定到节点上的pod找到合适的节点并绑定上去，但是为了实现gang调度、抢占、资源预留等功能，不能跟k8s的调度器一样通过watch到的pod事件来触发调度（大多数情况下，每一个pod的调度都是单pod最优），所以volcano的调度器采用的是周期性全局调度的方式。我们在看volcano的调度器代码时也能够看到调度逻辑也是这样的思路：
 
