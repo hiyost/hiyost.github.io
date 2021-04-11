@@ -4,27 +4,18 @@ date: 2019-08-01 21:06:45
 tags: list-watch, k8s, client-go
 ---
 
-记得三年前刚转正的时候就说要把k8s里面的`list-watch`搞透彻然后给大家讲一下，结果这个坑一挖就是三年，现在终于能抽出点时间将这个坑填平，也希望以后多花点时间读读源码，打好基础。希望后续还可以把`etcd`、`docker`、`istio`等组件的代码也好好走读一遍，开拓视野，而不只是拉通扯皮搞业务。
+我们知道，在`kubernetes`中，有5个主要的组件，分别是管理节点上的`kube-apiserver`、`kube-controller-manager`和`kube-scheduler`，`node`节点上的`kubelet`和`kube-proxy`。这其中`kube-apiserver`是对外和对内提供资源的声明式API的组件，其它4个组件都需要和它交互，在这个交互过程中，有一个非常关键的机制就是`list-watch`。我们知道`kube-apiserver`提供了一个`kubernetes`中各种资源的增删改查的接口，不对需要对内给这4个组件用，还需要给外外部的用户以及集群内可能安装的插件使用，因此它接收到的请求量是十分巨大的，为了减少这种请求量，降低`kube-apiserver`的压力，便设计出了`list-watch`机制。`client`端在跟`server`端长期进行交互时，并不是每次需要查询时都去调用server的接口，而是使用`list`+`watch`的方式来维护一个缓存将`server`端的数据缓存起来，当需要获取数据的时候直接从缓存中获取，一方面可以降低`server`端的压力，另一方面也可以减少自己获取数据的时间。当然，增删改还是需要调用server端的接口。
 
-
-
-言归正传，本文的目的是将list-watch的机制搞清楚，各位看官且往下看。
-
-<!-- more -->
+本文的目的是将`list-watch`的机制搞清楚，各位看官且往下看。
 
 > 说明：本文使用的k8s代码为[1.13版本](<https://github.com/kubernetes/kubernetes/tree/release-1.13>)，其他版本代码可能会有少许差异。
 >
-> 名称解释：
->
-> - 接口：
-> - 对象：
-> - 结构体：
-> - 资源：
-> - 元素：
+
+<!-- more -->
+
+# 0、啥是`list-watch`
 
 
-
-# 0、啥是`list-watch`啊
 
 
 
@@ -42,15 +33,19 @@ tags: list-watch, k8s, client-go
 
 ## 0.1、`list`与`watch`
 
-
+从字面上看，`list`就是获取静态的所有数据，而`watch`则是只关心发生了变化的那部分。对于`client`端而言，list是获取当前所有值列表的方法，主要用来查询，而`watch`则是用来监听每个资源的增删改事件。`list`是一般的`rest api`中都会实现的功能，我们这里重点讲一下`watch`。
 
 
 
 ## 0.2、使用场景
 
+在阅读`list-watch`的代码之前，我们来先思考一下它的使用场景。根据文章开头说到的一些功能，我们可以梳理部分需求：
 
-
-
+- 可以`watch`特定的资源，并根据资源的变动类型（增删改）进行不同的处理
+- `watch`到变化时将这个变化加如到队列中，由处理逻辑从队列中取，将事件的生产和消费分离开来
+- 想要查询某个资源时只需要从缓存中获取，不需要向`kube-apiserver`发请求
+- 对于某些特定的资源，除了能`watch`变化以外，还能定期产生变化的事件，用来做周期性检查
+- 多个不同的`controller`可能需要`watch`同一个资源，因此希望能在同一个`watch`的架构中能共享缓存并且能分别接收同一个资源的相同事件
 
 
 
@@ -85,11 +80,11 @@ tags: list-watch, k8s, client-go
 
 
 
-## 0.4、一个使用`list-watch`的简单例子
+## 0.4、`list-watch`的架构
 
 
 
-
+![img](2019-08-01-inside-list-watch-in-k8s/client-go-controller-interaction.jpg)
 
 
 
@@ -124,7 +119,7 @@ type threadSafeMap struct {
 
 - `lock sync.RWMutex`是一个读写锁，用来保证线程安全
 - `items map[string]interface{}`，这是一个`key`为`string`、`value`是任意类型的`map`，也是实际数据存放的最关键的数据结构，所有的操作最终都是跟这个`map`打交道，`key`是存储对象的唯一索引，`value`是存储的对象
-- `indexers Indexers`是用于给`map`中的`value`数据做检索（也就是计算`value`的`key`）的函数，实际的数据结构是`map[string]IndexFunc`，注意可以有多个索引函数，且每个函数的返回值可以是多个。可以把`IndexFunc`理解为聚类函数。常用的`IndexFunc`有`MetaNamespaceIndexFunc`（返回对象的`namespace`）和`indexByPodNodeName`（返回Pod对象所在节点的名字）。
+- `indexers Indexers`是用于给`map`中的`value`数据做检索（也就是计算`value`的`key`）的函数，`Indexers`实际的数据结构是`map[string]IndexFunc`，注意可以有多个索引函数，且每个函数的返回值可以是多个。可以把`IndexFunc`理解为聚类函数。常用的`IndexFunc`有`MetaNamespaceIndexFunc`（返回对象的`namespace`）和`indexByPodNodeName`（返回Pod对象所在节点的名字）。
 - `indices Indices`则是保存索引后的数据的`map[][]sets.String`，第一个key是`Indexers`中索引函数的名字，第二个key是这个索引函数返回值的索引，`sets.String`则是对应该索引值的所有`items`对象的key，这是一个已经按照索引分类好了的三维map。
 
 > 注：关于`threadSafeMap`中的`indexers`和`indices`这两个元素的作用，后面会在`Indexer`中继续说明，这其实是`list-watch`之所以高效的一个重要原因。
@@ -159,11 +154,11 @@ type ThreadSafeStore interface {
 }
 ```
 
-可以看到这里定义了包括增删改查等所有对数据进行操作的函数，而前面所说的`threadSafeMap`均实现了这里面所有的接口，因此在实际使用的时候都是通过`ThreadSafeStore`来进行操作，这样做的目的也很容易理解：将数据隐藏，只暴露操作这些数据的函数。实际就是面向对象的理念。
+可以看到这里定义了包括增删改查等所有对数据进行操作的函数，而前面所说的`threadSafeMap`均实现了这里面所有的接口，因此在实际使用的时候都是通过`ThreadSafeStore`接口来进行操作，这样做的目的也很容易理解：将数据隐藏，只暴露操作这些数据的接口。实际就是面向对象的理念。
 
 #### 1.1.1.2、如何创建
 
-在创建新的数据时，由于`threadSafeMap`是这个package里面的私有数据，虽然创建的是`threadSafeMap`结构体，但函数真正的返回值是`ThreadSafeStore`这个接口
+在创建新的数据时，由于`threadSafeMap`是这个`package`里面“不可导出”的，虽然创建的是`threadSafeMap`实例，但函数真正的返回值是`ThreadSafeStore`这个接口
 
 ```go
 func NewThreadSafeStore(indexers Indexers, indices Indices) ThreadSafeStore {
@@ -179,10 +174,10 @@ func NewThreadSafeStore(indexers Indexers, indices Indices) ThreadSafeStore {
 
 
 
-这里有2个问题没有搞明白：
+这里有2个可能需要注意的问题：
 
-- `threadSafeMap`的定义里面`items map[string]interface{}`，但是在创建时`items:    map[string]interface{}{}`，后面的`{}`其实是对这个map的初始化
-- `NewThreadSafeStore`函数中似乎并没有对`lock  sync.RWMutex`进行显式初始化，go语言的特性？
+- `threadSafeMap`的定义里面`items map[string]interface{}`，但是在创建时`items:    map[string]interface{}{}`，后面的`{}`其实是对这个map的初始化，这时候`items`已经不为`nil`了
+- `NewThreadSafeStore`函数中似乎并没有对`lock  sync.RWMutex`进行显式初始化，go语言中这种初始化方式中某个成员变量没有指定，那么它的值就是该成员变量类型的零值
 
 
 
@@ -192,7 +187,7 @@ func NewThreadSafeStore(indexers Indexers, indices Indices) ThreadSafeStore {
 
 
 
-可以看到`cache`相对于`threadSafeMap`而言最大的区别是多了一个`KeyFunc`（其定义是通过`obj`返回其对应的`key`字符串，这个`key`主要是给map做**唯一**索引用的）。
+从其成员变量中可以看到`cache`相对于`threadSafeMap`而言最大的区别是多了一个`KeyFunc`（其定义是通过`obj`返回其对应的`key`字符串，这个`key`主要是给map做**唯一**索引用的）。
 
 代码位于`staging/src/k8s.io/client-go/tools/cache/store.go`
 
@@ -263,8 +258,6 @@ type Indexer interface {
 }
 ```
 
-
-
 `Indexer`可以说是最具有效率的一套存储器接口，原因在于它实现了根据索引来实时分类的功能，什么意思呢？当你定义了这个`Indexer`的`IndexFunc`，那么一旦有元素加入到这个`Store`中来，就会自动给这个元素分组（根据`IndexFunc`计算的key来进行分组）。这有什么好处呢？假如我需要根据`namespace`来进行索引（在k8s中这是最常见的索引方式），那么`IndexFunc`就是根据obj来返回其对应的`namespace`的值。设想一下如果没有自动索引的功能，我想要查询某个`namespace`下的所有对象，就需要遍历所有的对象并选出在这个`namespace`下的对应，需要做一次全量的遍历，而实现了实时索引功能的`indexer`就不通，由于我已经实现定义了`IndexFunc`，在每个对象增加进来的时候，我已经根据`namespace`来分类了（通过`threadSafeMap`中的`indices`来维护，`indices`实际是个` map[string][string]sets.String`），那么需要查询这个`namespace`下的所有对象时就只需要直接返回这个`set`就可以了，不需要遍历所有的对象。当前这个需要在每个对象发生变化的时候事先索引，存在一定的开销，但是对于查询操作带来的便捷是十分巨大的。
 
 
@@ -280,8 +273,8 @@ type IndexFunc func(obj interface{}) ([]string, error)
 
 需要注意以下几点：
 
-- `IndexFunc`的返回值是一个字符串的`slice`，而不是一个单独的字符串，这意味着`IndexFunc`可以是复合类型的索引。疑问：是否过度设计？
-- `Indexer`的`IndexFunc`和`cache`的`keyFunc`不同，`keyFunc`计算的是对象的**唯一确定性**key（所以返回的是一个字符串而不是`slice`），不同对象经过`keyFunc`计算出来的key在这个`store`中是全局唯一的；而`IndexFunc`是一类对象的key，可能有多个对象都能通过这个`IndexFunc`计算出相同的key，这也是设计`IndexFunc`的初衷
+- `IndexFunc`的返回值是一个字符串的`slice`，而不是一个单独的字符串，这意味着`IndexFunc`可以是复合类型的索引，这也是为什么`Index`是一个`map`。疑问：是否过度设计？
+- `Indexer`的`IndexFunc`和`cache`的`keyFunc`不同，`keyFunc`计算的是对象的**唯一确定性**key（所以返回的是一个字符串而不是字符串`slice`），不同对象经过`keyFunc`计算出来的key在这个`store`中是全局唯一的；而`IndexFunc`是一类对象的key，可能有多个对象都能通过这个`IndexFunc`计算出相同的key（譬如不同`pod`的`namespace`是一样的），这也是设计`IndexFunc`的初衷
 
 
 
@@ -302,7 +295,7 @@ type Indices map[string]Index
 
 #### 1.1.2.3、如何创建
 
-由于`cache`是这个package中的私有数据，并不用来单独使用，而是通过其实现的两个接口`Store`和`Indexer`来使用：
+由于`cache`在这个package中是“不可导出”的，并不被直接引用，而是通过其实现的两个接口`Store`和`Indexer`来使用：
 
 ```go
 // NewStore返回的只是一个多了keyFunc的threadSafeStore，但是Indexers是空的
@@ -582,11 +575,11 @@ type Queue interface {
 
 我们对比一下目前已经讲过的几个接口：
 
-| 接口 | ThreadSafeStore       | Store                 | Indexer        | Queue          |
-| ---- | --------------------- | --------------------- | -------------- | -------------- |
-|      | ThreadSafeStore的接口 | 继承并增加了`KeyFunc` | 实现了`Store`  | 实现`Store`    |
-|      | NA                    | NA                    | 增加了索引功能 | 增加了队列功能 |
-| 对象 | threadSafeMap         | cache/FIFO/DeltaFIFO  | cache          | FIFO/DeltaFIFO |
+| 接口   | ThreadSafeStore       | Store                 | Indexer        | Queue          |
+| ------ | --------------------- | --------------------- | -------------- | -------------- |
+|        | ThreadSafeStore的接口 | 继承并增加了`KeyFunc` | 实现了`Store`  | 实现`Store`    |
+|        | NA                    | NA                    | 增加了索引功能 | 增加了队列功能 |
+| 结构体 | threadSafeMap         | cache/FIFO/DeltaFIFO  | cache          | FIFO/DeltaFIFO |
 
 可以看到，实现了`Indexer`和`Queue`接口的对象其实也实现了`Store`接口，因此`FIFO`和`DeltaFIFO`也都实现了`Store`的接口。但是与`cache`不同的是，`FIFO`和`DeltaFIFO`所实现的`Store`中的`Resync()`和`Replace()`完全不同，可以看到`Resync()`其实是专门为队列设计的：
 
@@ -701,7 +694,7 @@ type Reflector struct {
 }
 ```
 
-以上是`Reflector`的所有成员，从中不难看出这些成员之间的配合关系，在此简单梳理一下`Reflector`实际的执行逻辑（即`Reflector`的`Run()`函数逻辑，代码位于staging/src/k8s.io/client-go/tools/cache/reflector.go）：
+以上是`Reflector`的所有成员变量，从中不难看出这些成员之间的配合关系，在此简单梳理一下`Reflector`实际的执行逻辑（即`Reflector`的`Run()`函数逻辑，代码位于staging/src/k8s.io/client-go/tools/cache/reflector.go）：
 
 - 首先list一把当前这个资源类型的所有数据，然后调用`DeltaFIFO`的`Replace()`将list到的新数据同步到队列中，并将当前的版本号记录到`lastSyncResourceVersion`中
 - 起一个协程（收到stop信号或resync报错时退出），以`resyncPeriod`为周期，每次都通过`ShouldResync`函数判断（nil时默认执行）是否需要重新同步，是则将`DeltaFIFO`中的`knownObjects`（不为nil的情况下）遍历，并将`DeltaFIFO`队列中不存在的元素加入到队列中（`DeltaType`为`Sync`）
@@ -715,7 +708,7 @@ type Reflector struct {
 
 `Reflector`的`Run()`函数逻辑（可以跳过）
 
-代码位于
+
 
 
 
@@ -814,7 +807,7 @@ func (c *controller) Run(stopCh <-chan struct{}) {
 	var wg wait.Group
 	defer wg.Wait()
 	// 新起一个协程来执行reflector的Run函数（通过调用kube-apiserver的接口将元素加入到队列中）
-    // 实际是生产者
+    // 实际是生产者，会将生产出来的数据放入到Queue中
 	wg.StartWithChannel(stopCh, r.Run)
     // 不断执行processLoop函数来对队列中的元素进行Pop和处理
     // 实际是消费者
@@ -940,7 +933,7 @@ func (s *sharedIndexInformer) Run(stopCh <-chan struct{}) {
         // HandleDeltas中维护缓存（Indexer）中的数据并把消息（实际也是这个元素）发送给处理函数
 		Process: s.HandleDeltas,
 	}
-    // 那么问题来了，这里为什么要写成匿名函数呢？
+    // 那么问题来了，这里为什么要写成闭包呢？
 	func() {
 		s.startedLock.Lock()
 		defer s.startedLock.Unlock()
@@ -1028,7 +1021,7 @@ NewSharedInformerFactory
 
 ![img](http://o6sfmikvw.bkt.clouddn.com/listwatch.png)
 
-![img](https://res.cloudinary.com/dqxtn0ick/image/upload/v1555479782/article/code-analysis/informer/client-go-controller-interaction.jpg)
+![img](2019-08-01-inside-list-watch-in-k8s/client-go-controller-interaction.jpg)
 
 
 

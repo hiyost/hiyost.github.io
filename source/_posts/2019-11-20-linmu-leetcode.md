@@ -1249,7 +1249,7 @@ func findMinArrowShots(points [][]int) int {
 
 **题解**
 
-使用递归的方式，先算出子集的所有子集，然后遍历添加
+使用递归的方式，先算出子集的所有子集，然后遍历添加，在子集的基础上，可以选择增加当前的数字或者不增加。
 
 ```go
 func subsets(nums []int) [][]int {
@@ -1479,6 +1479,50 @@ func combinationSum(candidates []int, target int) [][]int {
 ```
 
 
+
+### [46. 全排列](https://leetcode-cn.com/problems/permutations/)
+
+**题目**
+
+给定一个 没有重复 数字的序列，返回其所有可能的全排列。
+
+示例:
+
+```
+输入: [1,2,3]
+输出:
+[
+  [1,2,3],
+  [1,3,2],
+  [2,1,3],
+  [2,3,1],
+  [3,1,2],
+  [3,2,1]
+]
+```
+
+**题解**
+
+同样使用递归的方式去求解，先算出子数组的结果
+
+```go
+func permute(nums []int) [][]int {
+    if len(nums) < 2 {
+        return [][]int{nums}
+    }
+    result := [][]int{}
+    for _, v := range permute(nums[1:]) {
+        // 将nums[0]插入到v的任何一个位置生成一个result记录
+        for i := 0; i <= len(v); i++ {
+            r := append([]int{}, v[:i]...)
+            r = append(r, nums[0])
+            r = append(r, v[i:]...)
+            result = append(result, r)
+        }
+    }
+    return result
+}
+```
 
 
 
