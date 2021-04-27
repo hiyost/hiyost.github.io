@@ -14,6 +14,8 @@ tags: beego
 
 > beego 是一个快速开发 Go 应用的 HTTP 框架，他可以用来快速开发 API、Web 及后端服务等各种应用，是一个 RESTful 的框架，主要设计灵感来源于 tornado、sinatra 和 flask 这三个框架，但是结合了 Go 本身的一些特性（interface、struct 嵌入等）而设计的一个框架。
 
+<!-- more -->
+
 从中不难看出，beego的本质还是一个http框架，用来搭建一个http server。要知道，Go语言的http库已经非常强大了，启动一个简单的server代码在10行左右就能搞定，既然如此，我们来对比一下使用Go官方的http库和使用beego分别启动，看看两者的差别。我们的要求如下：
 
 - 在本地的8080端口启动一个server，对于"/hello"这个路由的GET请求返回"Hello world!"
